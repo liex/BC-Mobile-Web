@@ -19,6 +19,7 @@ class WeatherWebModule extends WebModule {
             $controller = DataController::factory($locationFeed['CONTROLLER_CLASS'], $locationFeed);
             if ($data = $controller->getItemByIndex(0)) {
                 $items[] = array(
+                    'url'=>$data->getUrl(),
                     'img'=>$data->getImage(),
                     'title'=>$data->getTitle(),
                     'subtitle'=>nl2br($data->getSummary())

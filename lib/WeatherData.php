@@ -132,7 +132,7 @@ class WeatherForecast
     }
     
     public function getSummary() {
-        return sprintf("%s High: %d Low: %s", $this->getText(), $this->getHigh(), $this->getLow());
+        return sprintf("%s H: %d L: %s", $this->getText(), $this->getHigh(), $this->getLow());
     }
     
     public function getUnits() {

@@ -13,6 +13,7 @@ class WeatherData
     protected $temperature;
     protected $image;
     protected $forecasts = array();
+    protected $url;
  
     public function setUnits($units) {
         if (in_array($units, array(WeatherData::UNITS_METRIC, WeatherData::UNITS_IMPERIAL))) {
@@ -89,9 +90,10 @@ class WeatherData
     public function getForecast($date) {
         return isset($this->forecasts[$date]) ? $this->forecasts[$date] : null;
     }
-    
+        
     public function getSummary() {
-        $summary = sprintf("Now: %s, %d %s", $this->getCondition(), $this->getTemperature(), strtoupper($this->getUnits()));
+        $summary = sprintf("%s: %s, %d %s", $this->timestamp->format('g:ip'), 
+        $this->getCondition(), $this->getTemperature(), strtoupper($this->getUnits()));
         if ($forecast = $this->getForecast(date('Ymd'))) {
             $summary .= PHP_EOL . "Today: " . $forecast->getSummary();
         }
@@ -101,6 +103,14 @@ class WeatherData
         }
         
         return $summary;
+    }
+    
+    public function getURL() {
+        return $this->url;
+    }
+
+    public function setURL($url) {
+        $this->url = $url;
     }
 
 }

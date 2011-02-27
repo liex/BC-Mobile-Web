@@ -2,41 +2,33 @@
 
 require_once(LIB_DIR . '/WeatherData.php');
 
-class YahooWeatherDataController extends DataController
+class YahooWeatherDataController extends WeatherDataController
 {
     protected $DEFAULT_PARSER_CLASS='YahooWeatherDataParser';
-    protected $cacheFolder='YahooWeather';
     protected $cacheFileSuffix='rss';
-    protected $cacheLifetime = 100000;
-    protected $units='f';
-    
-    public function getItem($id) {
-        return false;
-    }
+    protected $baseURL='http://weather.yahooapis.com/forecastrss';
     
     protected function setUnits($units) {
-        $this->units = $units;
+        parent::setUnits($units);
         $this->addFilter('u', $units);
-        $this->parser->setUnits($units);
     }
     
-    protected function init($args) {
-        parent::init($args);
-        $this->setBaseURL('http://weather.yahooapis.com/forecastrss');
-
-        if (isset($args['LOCATION'])) {
-            $this->addFilter('w', $args['LOCATION']);
-        } else {
-            throw new Exception('Location not set');
-        }
-
-        if (isset($args['UNITS'])) {
-            $this->setUnits($args['UNITS']);
-        } else {
-            $this->setUnits($this->units);
-        }
+    protected function setLocation($location) {
+        parent::setLocation($location);
+        $this->addFilter('w', $location);
     }
-   
+
+    protected function parseData($data, DataParser $parser=null) {
+        $this->parser->setUnits($this->units);
+        $parsedData = $this->parser->parseData($data);
+    
+        if ($this->title) {
+            foreach ($parsedData as &$item) {
+                $item->setTitle($this->title);
+            }
+        }
+        return $parsedData;
+    }
 }
 
 class YahooWeatherDataParser extends RSSDataParser {
@@ -44,7 +36,11 @@ class YahooWeatherDataParser extends RSSDataParser {
     protected $units=WeatherData::UNITS_IMPERIAL;
     
     public function setUnits($units) {
-        $this->units = $units;
+        if (in_array($units, array(WeatherData::UNITS_METRIC, WeatherData::UNITS_IMPERIAL))) {
+            $this->units = $units;
+        } else {
+            throw new Exception("Invalid units $units");
+        }
     }
 
     public function parseData($data) {

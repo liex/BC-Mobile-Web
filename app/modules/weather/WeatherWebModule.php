@@ -1,13 +1,8 @@
 <?php
 /**
   * @package Module
-  * @subpackage Stats
-  */
-
-/**
-  * @package Module
-  * @subpackage Stats
-  */
+  * @subpackage Weather
+*/
 class WeatherWebModule extends WebModule {
     protected $id = 'weather';
     

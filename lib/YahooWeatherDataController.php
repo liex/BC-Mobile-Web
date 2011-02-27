@@ -55,16 +55,34 @@ class YahooWeatherDataParser extends RSSDataParser {
         foreach ($data as $item) {
             $WeatherData = new WeatherData();
             $WeatherData->setUnits($this->units);
-            $WeatherData->setTitle($item->getTitle());
+            
+            /* get title. attempt to extract out the location to be prettier */
+            $title = $item->getTitle();
+            if (preg_match("/^Conditions for (.*?) at/", $title, $bits)) {
+                $title = $bits[1];
+            }
+            $WeatherData->setTitle($title);
+
+            /* set time */
             $time = new DateTime($item->getPubDate());
             $WeatherData->setTimestamp($time);
+            
+            /* set lat/long */
             $WeatherData->setLat($item->getProperty('geo:lat'));
             $WeatherData->setLong($item->getProperty('geo:long'));
+
+            /* attempt to extract the image */
+            $content = $item->getContent();    
+            if (preg_match('/<img src="([^"]+)"[^>]+>/', $content, $bits)) {
+                $WeatherData->setImage($bits[1]);
+            }
             
             if ($condition = $item->getChildElement('yweather:condition')) {
                 $WeatherData->setCondition($condition->getAttrib('text'));
                 $WeatherData->setTemperature($condition->getAttrib('temp'));
             }
+
+            $WeatherData->setURL($item->getLink());            
             
             if ($forecasts = $item->getChildElement('yweather:forecast')) {
                 foreach ($forecasts as $forecast) {

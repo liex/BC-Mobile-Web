@@ -1,1 +1,1 @@
-{include file="findInclude:common/results.tpl" results=$routes accessKey=false}
+{include file="findInclude:common/templates/results.tpl" results=$routes accessKey=false}

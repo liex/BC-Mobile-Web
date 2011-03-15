@@ -1,4 +1,4 @@
-{include file="findInclude:common/header.tpl"}
+{include file="findInclude:common/templates/header.tpl"}
 
 <div class="nonfocal">
   <h2 class="refreshContainer">

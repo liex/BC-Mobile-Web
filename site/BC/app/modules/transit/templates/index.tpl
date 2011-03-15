@@ -1,4 +1,4 @@
-{include file="findInclude:common/header.tpl"}
+{include file="findInclude:common/templates/header.tpl"}
 
 {$tabBodies = array()}
 
@@ -6,7 +6,7 @@
   {block name="runningPane"}
     {foreach $runningRoutes as $section}
       <h3>{$section['heading']}</h3>
-      {include file="findInclude:common/navlist.tpl" navlistItems=$section['items'] accessKey=false nested=true}
+      {include file="findInclude:common/templates/navlist.tpl" navlistItems=$section['items'] accessKey=false nested=true}
     {/foreach}
   {/block}
 {/capture}
@@ -16,7 +16,7 @@
   {block name="offlinePane"}
     {foreach $offlineRoutes as $section}
       <h3>{$section['heading']}</h3>
-      {include file="findInclude:common/navlist.tpl" navlistItems=$section['items'] accessKey=false nested=true}
+      {include file="findInclude:common/templates/navlist.tpl" navlistItems=$section['items'] accessKey=false nested=true}
     {/foreach}
   {/block}
 {/capture}
@@ -29,7 +29,7 @@
       {foreach $section['items'] as $index => $item}
         {$section['items'][$index]['subtitle'] = $item['date']|date_format:"%a %b %e, %Y"}
       {/foreach}
-      {include file="findInclude:common/navlist.tpl" navlistItems=$section['items'] accessKey=false nested=true subTitleNewline=true}
+      {include file="findInclude:common/templates/navlist.tpl" navlistItems=$section['items'] accessKey=false nested=true subTitleNewline=true}
     {/foreach}
   {/block}
 {/capture}
@@ -39,7 +39,7 @@
   {block name="infoPane"}
     {foreach $infosections as $section}
       <h3>{$section['heading']}</h3>
-      {include file="findInclude:common/navlist.tpl" navlistItems=$section['items'] accessKey=false nested=true subTitleNewline=true}
+      {include file="findInclude:common/templates/navlist.tpl" navlistItems=$section['items'] accessKey=false nested=true subTitleNewline=true}
     {/foreach}
   {/block}
 {/capture}
@@ -48,8 +48,8 @@
 {block name="tabView"}
 	<a name="scrolldown"></a>		
   <div class="nonfocal">
-	  {include file="findInclude:common/tabs.tpl" tabBodies=$tabBodies smallTabs=true}
+	  {include file="findInclude:common/templates/tabs.tpl" tabBodies=$tabBodies smallTabs=true}
 	</div>
 {/block}
 
-{include file="findInclude:common/footer.tpl"}
+{include file="findInclude:common/templates/footer.tpl"}

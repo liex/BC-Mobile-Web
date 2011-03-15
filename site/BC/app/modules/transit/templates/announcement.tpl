@@ -1,4 +1,4 @@
-{include file="findInclude:common/header.tpl"}
+{include file="findInclude:common/templates/templates/header.tpl"}
 
 <div class="focal">
   <h2>{$title}</h2>
@@ -6,4 +6,4 @@
   {$content}
 </div>
 
-{include file="findInclude:common/footer.tpl"}
+{include file="findInclude:common/templates/templates/footer.tpl"}

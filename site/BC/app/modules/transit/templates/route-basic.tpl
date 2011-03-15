@@ -1,4 +1,4 @@
-{extends file="findExtends:modules/{$moduleID}/route.tpl"}
+{extends file="findExtends:modules/{$moduleID}/templates/route.tpl"}
 
 {block name="mapPane"}
   <p class="image">

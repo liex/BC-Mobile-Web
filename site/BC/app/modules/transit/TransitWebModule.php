@@ -1,6 +1,6 @@
 <?php
 
-require_once realpath(LIB_DIR.'/TransitDataParser.php');
+includePackage('transit');
 
 class TransitWebModule extends WebModule {
   protected $id = 'transit';
@@ -65,7 +65,7 @@ class TransitWebModule extends WebModule {
         break;
 
       case 'index':
-        $indexConfig = $this->loadWebAppConfigFile('transit-index', 'indexConfig');
+        $indexConfig = $this->loadPageConfigFile('index', 'indexConfig');
 
         //
         // Running and Offline Panes

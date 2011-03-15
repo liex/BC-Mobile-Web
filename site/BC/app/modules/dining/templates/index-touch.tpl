@@ -1,4 +1,4 @@
-{extends file="findExtends:modules/{$moduleID}/index.tpl"}
+{extends file="findExtends:modules/{$moduleID}/templates/index.tpl"}
 
 {block name="locationStatusImageDetails"}
   {$statusImages[$status]['src']    = $statusImages[$status]['src']|cat:".gif"}

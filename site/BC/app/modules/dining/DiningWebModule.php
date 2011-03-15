@@ -1,6 +1,6 @@
 <?php
 
-//includePackage('dining');
+includePackage('dining');
 
 class DiningWebModule extends WebModule {
   protected $id = 'dining';

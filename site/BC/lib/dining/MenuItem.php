@@ -1,4 +1,5 @@
 <?php
+
 class MenuItem {
 
   public $mealDate;

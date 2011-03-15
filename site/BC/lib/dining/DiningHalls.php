@@ -1,4 +1,5 @@
 <?php
+
 /****************************************************************
  *
  *  Copyright 2010 The President and Fellows of Harvard College
@@ -9,7 +10,7 @@
 define('PATH_TO_DINING_HRS', DATA_DIR.'/DiningHours');
 
 class MealRestrictions {
-    
+
   public $days = array();
   public $time;
   public $message;
@@ -129,10 +130,10 @@ class DiningHalls {
 
     return $diningHalls;
   }
-  
+
   public static function getDiningHallStatuses() {
     $diningHalls = self::getDiningHallHours();
-  
+
     $statuses = array();
     $minuteOfTheDay = self::minuteOfTheDay(time());
     $day = date("l");
@@ -195,10 +196,10 @@ class DiningHalls {
 
     return $statuses;
   }
-  
+
   private static function todaysMealsHours($diningHall, $day) {
     $mealsHours = array();
-    foreach(HarvardDining::$meals as $meal => $mealData) {
+    foreach(BCDining::$meals as $meal => $mealData) {
       if(self::isMealToday($mealData, $day)) {
         $mealHours = $diningHall->{$meal . "_hours"};
         if($mealHours != "NA") {
@@ -208,7 +209,7 @@ class DiningHalls {
     }
     return $mealsHours;
   }
-  
+
   private static function isMealToday($meal, $day) {
     if(isset($meal["days"])) {
       // check id $day is list in $meal['days']
@@ -219,7 +220,7 @@ class DiningHalls {
       return true;
     }
   }
-  
+
   private static function isMinuteDuringHours($minute, $mealHours) {
     $limits = self::stringToStartEndLimits($mealHours);
 
@@ -229,12 +230,12 @@ class DiningHalls {
       return ($minute >= $limits["start"]);
     }
   }
-  
+
   private static function isMinuteBeforeHours($minute, $mealHours) {
     $limits = self::stringToStartEndLimits($mealHours);
     return ($minute < $limits["start"]);
   }
-  
+
   private static function stringToStartEndLimits($mealHours) {
     // look for $mealHours formatted as "starting 10:00pm"
     if(strpos($mealHours, "starting") === 0) {
@@ -245,16 +246,16 @@ class DiningHalls {
     // other possible formats "Noon-2:15pm", "11:30am-2:15pm", "7:30-10:00am"
     $parts = explode("-", $mealHours);
     $start = $parts[0];
-    $end = $parts[1];
+    $end = isset($parts[1]) ? $parts[1] : '';
 
     // parse second part (because its format is more standard
     // and info from the second part is used to parse the first part)
     $endTotalMinutes = self::stringToMinutes($end);
     $startTotalMinutes = self::stringToMinutes($start, $endTotalMinutes);
     return array("start" => $startTotalMinutes, "end" => $endTotalMinutes);
-  
+
   }
-  
+
   /*
    * if $time_string does not specify "am" or "pm",
    * use the fact that $time_string has to be before $before_minute.
@@ -266,35 +267,39 @@ class DiningHalls {
       return 12 * 60;
     }
 
-    preg_match('/(\d+)\:(\d+)(am|pm)?/', $time_string, $matches);
-    $hour = intval($matches[1]);
-    $minute = intval($matches[2]);
+	if (preg_match('/(\d+)\:(\d+)(am|pm)?/', $time_string, $matches)) {
+	    $hour = intval($matches[1]);
+    	$minute = intval($matches[2]);
 
-    $total_minutes = $hour * 60 + $minute;
+    	$total_minutes = $hour * 60 + $minute;
 
-    // check if am or pm is in $time_string
-    if(count($matches) > 3) {
-      $am_or_pm = $matches[3];
-      if($am_or_pm == "pm") {
-        $total_minutes += 12*60;
-      }
+    	// check if am or pm is in $time_string
+    	if(count($matches) > 3) {
+    	  $am_or_pm = $matches[3];
+    	  if($am_or_pm == "pm") {
+    	    $total_minutes += 12*60;
+    	  }
+    	} else {
+    	  // am or pm not specified, so we first try pm
+    	  // then try am constrained by $before_minute
+    	  // we try pm first (because we are trying to
+    	  // minimize the difference between $time_string and $before_minute
+    	  if($total_minutes+12*60 < $before_minute) {
+    	    $total_minutes += 12*60;
+    	  }
+    	}
+
+    	return $total_minutes;
     } else {
-      // am or pm not specified, so we first try pm
-      // then try am constrained by $before_minute
-      // we try pm first (because we are trying to
-      // minimize the difference between $time_string and $before_minute
-      if($total_minutes+12*60 < $before_minute) {
-        $total_minutes += 12*60;
-      }
+    	return $time_string;
     }
-    return $total_minutes;
   }
-  
-  
+
+
   private static function minuteOfTheDay($time) {
     return intval(date("G", $time)) * 60 + intval(date("i", $time));
   }
-  
+
   private static function isMealRestricted($diningHall, $meal, $day) {
     // only some type of meals have restrictions
     $restricted_meals = array("brunch", "lunch", "dinner");
@@ -314,9 +319,9 @@ class DiningHalls {
 
     return false;
   }
-  
+
   private static function statusSummary($statusDetails) {
-      
+
     $status = $statusDetails['status'];
     $summary = "";
 
@@ -324,7 +329,7 @@ class DiningHalls {
       // determine meal name
       $meal = $statusDetails['openMeal'];
       $mealHours = $statusDetails['openMealHours'];
-      $mealName = HarvardDining::mealName($meal);
+      $mealName = BCDining::mealName($meal);
 
       $summary = "Open for {$mealName}";
       if($status == 'openrestrictions') {
@@ -336,7 +341,7 @@ class DiningHalls {
       if(isset($statusDetails['nextMeal'])) {
         $meal = $statusDetails['nextMeal'];
         $mealHours = $statusDetails['nextMealHours'];
-        $mealName = HarvardDining::mealName($meal);
+        $mealName = BCDining::mealName($meal);
         $summary .= " Next meal: " . ucwords($mealName) .", ";
       } else {
         $mealHours = NULL;

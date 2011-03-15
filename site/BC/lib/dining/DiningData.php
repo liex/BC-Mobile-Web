@@ -1,4 +1,5 @@
 <?php
+
 class DiningData {
 
   public static function createDiningFlatFile($local_file) {

@@ -1,4 +1,4 @@
-{include file="findInclude:common/header.tpl"}
+{include file="findInclude:common/templates/header.tpl"}
 
 <div class="nonfocal">
 	<h2>
@@ -115,10 +115,10 @@
 {block name="tabView"}
   <a name="scrolldown"> </a>
   <div class="nonfocal">
-    {include file="findInclude:common/tabs.tpl" tabBodies=$tabBodies smallTabs=true}
+    {include file="findInclude:common/templates/tabs.tpl" tabBodies=$tabBodies smallTabs=true}
   </div>
 {/block}
 
 {$sideNav}
 
-{include file="findInclude:common/footer.tpl"}
+{include file="findInclude:common/templates/footer.tpl"}

@@ -1,4 +1,4 @@
-{include file="findInclude:common/header.tpl"}
+{include file="findInclude:common/templates/header.tpl"}
 
 <div class="nonfocal">
   <h2>{$diningHall}</h2>
@@ -28,4 +28,4 @@
   {/foreach}
 </ul>
 
-{include file="findInclude:common/footer.tpl"}
+{include file="findInclude:common/templates/footer.tpl"}

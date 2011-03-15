@@ -1,0 +1,6 @@
+<?php
+
+define('DINING_MENU_DIRECTORY', CACHE_DIR.'/DINING/');
+define('DINING_MENU_FLAT_FILE', DATA_DIR.'/MENU');
+define('DINING_MENU_RAW_FILE', DATA_DIR.'/menu.csv');
+define('DINING_LIFESPAN', 60*60*24);

@@ -13,7 +13,6 @@ class MenuItem {
   public $type;
 
   public function __construct($data) {
-    date_default_timezone_set('America/New_York');
     $this->mealDate = strtotime($data[0]);
     $this->id = $data[1];
     $this->name = $data[2];

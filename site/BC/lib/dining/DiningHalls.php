@@ -199,7 +199,7 @@ class DiningHalls {
 
   private static function todaysMealsHours($diningHall, $day) {
     $mealsHours = array();
-    foreach(BCDining::$meals as $meal => $mealData) {
+    foreach(Dining::$meals as $meal => $mealData) {
       if(self::isMealToday($mealData, $day)) {
         $mealHours = $diningHall->{$meal . "_hours"};
         if($mealHours != "NA") {
@@ -329,7 +329,7 @@ class DiningHalls {
       // determine meal name
       $meal = $statusDetails['openMeal'];
       $mealHours = $statusDetails['openMealHours'];
-      $mealName = BCDining::mealName($meal);
+      $mealName = Dining::mealName($meal);
 
       $summary = "Open for {$mealName}";
       if($status == 'openrestrictions') {
@@ -341,7 +341,7 @@ class DiningHalls {
       if(isset($statusDetails['nextMeal'])) {
         $meal = $statusDetails['nextMeal'];
         $mealHours = $statusDetails['nextMealHours'];
-        $mealName = BCDining::mealName($meal);
+        $mealName = Dining::mealName($meal);
         $summary .= " Next meal: " . ucwords($mealName) .", ";
       } else {
         $mealHours = NULL;

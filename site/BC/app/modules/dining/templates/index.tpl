@@ -93,7 +93,7 @@
   {/block}
   
     <p class="fineprint">
-      Harvard student ID required. Schedule shown does not account for holidays and other closures.
+      Schedule shown does not account for holidays and other closures.
     </p>
     
   {block name="locationDiningStatuses"}

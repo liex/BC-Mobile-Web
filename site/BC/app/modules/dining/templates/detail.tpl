@@ -4,7 +4,7 @@
   <h2>{$diningHall}</h2>
 </div>
 
-<p class="nonfocal fineprint">Harvard student ID required. Schedule shown does not account for holidays and other closures.</p>
+<p class="nonfocal fineprint">Schedule shown does not account for holidays and other closures.</p>
 
 <ul class="nav">
   {foreach $diningHallHours as $meal => $times}

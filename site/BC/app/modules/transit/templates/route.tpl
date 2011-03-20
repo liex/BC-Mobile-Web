@@ -1,4 +1,4 @@
-{include file="findInclude:common/header.tpl" scalable=false}
+{include file="findInclude:common/templates/header.tpl" scalable=false}
 
 {$tabBodies = array()}
 
@@ -24,7 +24,7 @@
   {block name="stopsPane"}
     <span class="smallprint">{$routeConfig['stopTimeHelpText']}</span>
     <div id="schedule">
-      {include file="findInclude:common/results.tpl" results=$routeInfo['stops']}
+      {include file="findInclude:common/templates/results.tpl" results=$routeInfo['stops']}
     </div>
   {/block}
 {/capture}
@@ -70,8 +70,8 @@
     {/block}  
   </p>
 {block name="tabView"}
-	  {include file="findInclude:common/tabs.tpl" tabBodies=$tabBodies}
+	  {include file="findInclude:common/templates/tabs.tpl" tabBodies=$tabBodies}
 {/block}
 </div>
 
-{include file="findInclude:common/footer.tpl"}
+{include file="findInclude:common/templates/footer.tpl"}

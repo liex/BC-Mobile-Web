@@ -175,7 +175,7 @@ class TransitWebModule extends WebModule {
       case 'route':
         $routeID = $this->getArg('id');
 
-        $routeConfig = $this->loadWebAppConfigFile('transit-route', 'routeConfig');
+        $routeConfig = $this->loadPageConfigFile('transit-route', 'routeConfig');
 
         $routeInfo = $view->getRouteInfo($routeID);
         foreach ($routeInfo['stops'] as $stopID => $stop) {
@@ -278,7 +278,7 @@ class TransitWebModule extends WebModule {
       case 'info':
         $infoType = $this->getArg('id');
 
-        $infoConfig = $GLOBALS['siteConfig']->loadFeedData("{$this->id}-info");
+        $infoConfig = $this->loadPageConfigFile("{$this->id}-info");
 
         if (!isset($infoConfig[$infoType]) || !strlen($infoConfig[$infoType])) {
           $this->redirectTo('index', array());

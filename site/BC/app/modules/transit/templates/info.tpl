@@ -4,4 +4,4 @@
   {$content}
 </div>
 
-{include file="findInclude:common/footer.tpl"}
+{include file="findInclude:common/templates/footer.tpl"}

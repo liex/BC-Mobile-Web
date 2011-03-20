@@ -43,14 +43,14 @@
     {/if}
   {/foreach}
 
-  {include file="findInclude:common/navlist.tpl" navlistItems=$runningRoutes accessKey=false subTitleNewline=true}
+  {include file="findInclude:common/templates/navlist.tpl" navlistItems=$runningRoutes accessKey=false subTitleNewline=true}
 {else}
   <div class="focal">No routes currently servicing this stop</div>  
 {/if}
 
 {if count($offlineRoutes)}
   <h3 class="nonfocal">Services at other times by:</h3>
-  {include file="findInclude:common/navlist.tpl" navlistItems=$offlineRoutes accessKey=false}
+  {include file="findInclude:common/templates/navlist.tpl" navlistItems=$offlineRoutes accessKey=false}
 {/if}
 
-{include file="findInclude:common/footer.tpl"}
+{include file="findInclude:common/templates/footer.tpl"}

@@ -21,12 +21,7 @@ abstract class TransitDataParser {
   );
 
   public static function factory($class, $args, $overrides, $whitelist, $daemonMode=false) {
-    $parser = null;
-    $parserClassFile = realpath_exists(LIB_DIR."/$class.php");
-    if ($parserClassFile) {
-      require_once $parserClassFile;
-      $parser = new $class($args, $overrides, $whitelist, $daemonMode);
-    }
+    $parser = new $class($args, $overrides, $whitelist, $daemonMode);
     return $parser;
   }
 

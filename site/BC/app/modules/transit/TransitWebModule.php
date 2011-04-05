@@ -10,6 +10,8 @@ class TransitWebModule extends WebModule {
   }
 
   private function timesURL($routeID, $addBreadcrumb=true, $noBreadcrumb=false, $paneLink=false) {
+//	echo "timesURL=".$routeID."<br/>";
+
     $args = array(
       'id' => $routeID,
     );
@@ -22,6 +24,8 @@ class TransitWebModule extends WebModule {
   }
 
   private function newsURL($newsID, $addBreadcrumb=true) {
+//	echo "newsURL=".$newsID."<br/>";
+
     return $this->buildBreadcrumbURL('announcement', array(
       'id' => $newsID,
     ), $addBreadcrumb);
@@ -229,7 +233,7 @@ class TransitWebModule extends WebModule {
       case 'stop':
         $stopID = $this->getArg('id');
 
-        $routeConfig = $this->loadWebAppConfigFile('transit-route', 'routeConfig');
+        $routeConfig = $this->loadPageConfigFile('transit-route', 'routeConfig');
 
         $stopInfo = $view->getStopInfo($stopID);
 

@@ -3,7 +3,7 @@
 body {
 	background-color: #dcdddf;
 	font: 17px/1.33em 'Helvetica Neue', Helvetica, Arial, sans-serif;
-	/* background: url(/common/images/background-tile.jpg) top right repeat-x, url(/common/images/background-tile-2.jpg) bottom left repeat; */
+	/* background: url(/common/images/background_tile.png) top right repeat-x, url(/common/images/background-tile-2.jpg) bottom left repeat; */
 }
 
 body, th, td, li, option, select, input {

@@ -1,0 +1,51 @@
+/* Polls */
+
+.label {
+  width: 4em;
+}
+
+.value {
+  margin-left: 3.75em;
+}
+
+#pollform{
+    padding:4px 15px;
+}
+
+.poll-result-header {
+    padding:0px 0px;
+}
+
+.poll-question {
+    font-weight: bold;
+}
+
+.poll-answer {
+    font-weight: normal;
+    font-size:.9em;
+    margin-top:5px;
+}
+
+.poll-answer  a:visited {
+	color: #fff;
+}
+.poll-answer a{
+    display:block;
+    padding:4px 8px;
+    color:#fff;
+    text-decoration:none;
+    -moz-border-radius: 12px;
+    -khtml-border-radius: 12px;
+    -webkit-border-radius: 12px;
+    background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(#999), to(#555));
+    background: -khtml-gradient(linear, 0% 0%, 0% 100%, from(#999), to(#555));
+    background: -moz-linear-gradient(top, #999, #555);
+    filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#999', endColorstr='#555');
+
+
+}
+
+.poll-answer a:hover {
+    background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(#222), to(#999));
+    background: -moz-linear-gradient(top, #222, #999);
+        filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#222', endColorstr='#555');}

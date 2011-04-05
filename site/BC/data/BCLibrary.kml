@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://earth.google.com/kml/2.1">
+<Document>
+  <name>Boston College Libraries</name>
+  <description><![CDATA[Boston College Libraries]]></description>
+ 
+  <Style id="greenmarker">
+    <IconStyle>
+      <Icon>
+        <href>http://maps.google.com/mapfiles/ms/micons/green-dot.png</href>
+      </Icon>
+    </IconStyle>
+    <BalloonStyle>
+	<bgColor>ff282874</bgColor>
+	<textColor>FFFFFFFF</textColor>
+    </BalloonStyle>
+  </Style>
+
+
+  <Style id="redline">
+    <LineStyle>
+      <color>B30000FF</color>
+      <width>5</width>
+    </LineStyle>
+  </Style>
+
+  <Style id="bluemarker">
+    <BalloonStyle>
+	<bgColor>ff282874</bgColor>
+	<textColor>FFFFFFFF</textColor>
+    </BalloonStyle>
+    <IconStyle>
+      <Icon>
+        <href>http://maps.google.com/mapfiles/ms/micons/blue-dot.png</href>
+      </Icon>
+    </IconStyle>
+  </Style>
+
+
+  <Placemark>
+    <name>Bapst Art Library</name>
+    <description><![CDATA[Bapst Art Library]]></description>
+    <styleUrl>#greenmarker</styleUrl>
+    <Point>
+      <coordinates>-71.171450,42.337067,0.000000</coordinates>
+    </Point>
+  </Placemark>
+  <Placemark>
+    <name>O'Neill Library</name>
+    <description><![CDATA[O'Neill Library]]></description>
+    <styleUrl>#greenmarker</styleUrl>
+    <Point>
+      <coordinates>-71.171201,42.336734,0.000000</coordinates>
+    </Point>
+  </Placemark>
+  
+</Document>
+</kml>

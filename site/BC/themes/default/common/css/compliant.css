@@ -104,12 +104,14 @@ dt, .label, .legend, .legend.nonfocal, .legend h2, .legend h3, .searchlegend, .s
 
 .breadcrumbs, .breadcrumbs a, .breadcrumbs a:visited {
  	/* All breadcrumb links in nav bar */
-	color: #DFD4BC;
+	color: #D7CBAE;
+    /*color: #DFD4BC;*/
 }
 
 .pagetitle {
  	/* Current page title in nav bar */
-	color: #D2A74D;
+	color: #D7CBAE;
+    /*color: #DFD4BC;*/
 }
 
 

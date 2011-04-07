@@ -16,7 +16,7 @@ class DiningData {
       $menuItem = new MenuItem($data);
       $menu_key = $menuItem->mealDate;
 
-      if (!array_key_exists($menu_key, $menus)) {
+      if (!array_key_exists((string)$menu_key, $menus)) {
         $menus[$menu_key] = array();
       }
 

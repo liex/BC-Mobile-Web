@@ -1,9 +1,10 @@
 /* Overall font and colors */
 
 body {
-	background-color: #E9E2D4;
+	/*background-color: #E9E2D4;*/
+    background-color:#EFEBE1;
 	font: 17px/1.33em 'Arial', Helvetica Neue, Helvetica, Arial, sans-serif;
-	background:  #E9E2D4 url("/device/compliant-computer-1/common/images/navback.png") top right repeat-x !important; /*url(/common/images/background-tile-2.jpg) bottom left repeat; */
+	background:  #EFEBE1 url("/device/compliant-computer-1/common/images/navback.png") top right repeat-x !important; /*url(/common/images/background-tile-2.jpg) bottom left repeat; */
 }
 
 body, th, td, li, option, select, input {

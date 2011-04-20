@@ -31,8 +31,10 @@ class MenuItem {
 
     $foodTypeName;
 
-    switch ($this->foodType) {
+      //All of these cases are made for Harvard, not for BC, but they can easily be changed to something more suiting our needs.  A lot of the earlier entries would still suit our purposes- it's only 27 on which need revision to say things like "At Hillside" or "In the Chocolate Bar" or some such.
+      //Another thought, though, is to have two seperate case statements, one of which would filter as below by "foodType" and other of which would filter by "location", allowing us to write some simple code which would check the food type and location and then display ("%s is being served at %s", foodType, location)
 
+    switch ($this->foodType) {
       case "01":
         $foodTypeName = "Breakfast Meats";
         break;

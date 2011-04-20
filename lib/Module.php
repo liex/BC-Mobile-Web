@@ -9,9 +9,8 @@
  */ 
 abstract class Module
 {
-    const ACL_ADMIN='acladmin';
-    const ACL_USER ='acl';
     protected $id='none';
+    protected $configModule;
     protected $args = array();
     protected $session;
     protected $moduleData;
@@ -23,18 +22,29 @@ abstract class Module
     public function getID() {
         return $this->id;
     }
+
+    /**
+      * Returns the id used for config (typically the id)
+      * @return string
+      */
+    public function getConfigModule() {
+        return $this->configModule;
+    }
+
+    /**
+      * Sets the id used for config
+      * @param string $id
+      */
+    public function setConfigModule($id) {
+        return $this->configModule = $id;
+    }
   
     /**
       * Loads the data in the feeds configuration file
       * @return array
       */
     protected function loadFeedData() {
-        $data = array();
-        
-        if ($feedConfigFile = $this->getConfig($this->id, 'feeds')) {
-            $data = $feedConfigFile->getSectionVars();
-        }
-        return $data;
+        return $this->getModuleSections('feeds');
     }
   
     /**
@@ -89,40 +99,60 @@ abstract class Module
                 $moduleFile = realpath_exists($path);
                 if ($moduleFile && include_once($moduleFile)) {
                     //found it
-                    return new $className();
+                    $info = new ReflectionClass($className);
+                    if (!$info->isAbstract()) {
+                        $module = new $className();
+                        return $module;
+                    }
+                    return false;
                 }
             }
         }
        
         throw new Exception("Module $id not found");
     }
+    
+    public function __construct() {
+        if (!$this->configModule) {
+            $this->configModule = $this->id;
+        }
+    }
    
     /**
       * Common initialization. Checks access.
       */
     protected function init() {
-        $moduleData = $this->getModuleData();
 
-        if ($moduleData['disabled']) {
+        if ($this->getModuleVar('disabled','module')) {
             $this->moduleDisabled();
         }
-        
-        if ($moduleData['secure'] && (!isset($_SERVER['HTTPS']) || ($_SERVER['HTTPS'] !='on'))) { 
+
+        if ((Kurogo::getOptionalSiteVar('SECURE_REQUIRED') || $this->getModuleVar('secure','module')) && 
+            (!isset($_SERVER['HTTPS']) || ($_SERVER['HTTPS'] !='on'))) { 
             $this->secureModule();
         }
         
-        if ($this->getSiteVar('AUTHENTICATION_ENABLED')) {
+        if (Kurogo::getSiteVar('AUTHENTICATION_ENABLED')) {
             includePackage('Authentication');
-            if ($moduleData['protected']) {
-                if (!$this->isLoggedIn()) {
-                    $this->unauthorizedAccess();
-                }
-            }
-            
-            if (!$this->evaluateACLS(self::ACL_USER)) {
+            if (!$this->getAccess()) {
                 $this->unauthorizedAccess();
             }
         }
+    }
+    
+    protected function getAccess() {
+
+        if ($this->getModuleVar('protected','module')) {
+            if (!$this->isLoggedIn()) {
+                return false;
+            }
+        }
+                
+        if (!$this->evaluateACLS(AccessControlList::RULE_TYPE_ACCESS)) {
+            return false;
+        }
+    
+        return true;
     }
 
 
@@ -161,7 +191,8 @@ abstract class Module
       */
     protected function getSession() {
         if (!$this->session) {
-            $args = $this->getSiteSection('authentication');
+            $args = Kurogo::getSiteSection('authentication');
+            $args['DEBUG_MODE'] = Kurogo::getSiteVar('DATA_DEBUG');
             $this->session = new Session($args);
         }
     
@@ -175,53 +206,11 @@ abstract class Module
       * @param int $opts bitfield of ConfigFile options
       * @return ConfigFile object
       */
-    protected function getConfig($id, $type, $opts=0) {
-        $opts = $opts | ModuleConfigFile::OPTION_CREATE_WITH_DEFAULT;
-        $config = ModuleConfigFile::factory($id, $type, $opts); 
-        $GLOBALS['siteConfig']->addConfig($config);
+    protected function getConfig($type, $opts=0) {
+        if ($config = ModuleConfigFile::factory($this->configModule, $type, $opts)) {
+            $GLOBALS['siteConfig']->addConfig($config);
+        }
         return $config;
-    }
-
-    /**
-      * Returns the main module configuration file
-      * @return ConfigFile object
-      */
-    protected function getModuleConfig() {
-        static $moduleConfig;
-        if (!$moduleConfig) {
-            $moduleConfig = $this->getConfig($this->id, 'module');
-        }
-        
-        return $moduleConfig;
-    }
- 
-    /**
-      * Returns the main module configuration
-      * @return array. Dictionary of module keys and values
-      */
-    public function getModuleData() {
-        if (!$this->moduleData) {
-            $moduleData = $this->getModuleDefaultData();
-            $config = $this->getModuleConfig();
-            $moduleData = array_merge($moduleData, $config->getSectionVars(true));
-            $this->moduleData = $moduleData;
-        }
-    
-        return $this->moduleData;
-    }
-  
-    /**
-      * Returns default module configuration data
-      * @return array
-      */
-    protected function getModuleDefaultData() {
-        return array(
-            'title'=>ucfirst($this->id),
-            'disabled'=>0,
-            'protected'=>0,
-            'search'=>0,
-            'secure'=>0
-        );
     }
 
     /**
@@ -250,53 +239,40 @@ abstract class Module
     }
 
     /**
-      * Returns a key from the site configuration
-      * @param string $var the key to retrieve
-      * @param mixed $default an optional default value if the key is not present
-      * @param int $opts
-      * @return mixed the value of the or the default 
-      */
-    protected function getSiteVar($var, $default=null, $opts=Config::LOG_ERRORS) {
-        $value = $GLOBALS['siteConfig']->getVar($var, $opts | Config::EXPAND_VALUE);
-        return is_null($value) ? $default :$value;
-    }
-
-    /**
-      * Returns a section from the site configuration
-      * @param string $section the key to retrieve
-      * @param int $opts
-      * @return array the section
-      */
-    protected function getSiteSection($section, $opts=Config::LOG_ERRORS) {
-        return $GLOBALS['siteConfig']->getSection($section, $opts);
-    }
-
-    /**
       * Returns a key from the module configuration
       * @param string $var the key to retrieve
       * @param mixed $default an optional default value if the key is not present
       * @param int $opts
       * @return mixed the value of the or the default 
       */
-    protected function getModuleVar($var, $default=null, $opts=Config::LOG_ERRORS) {
-        $config = $this->getModuleConfig();
-        $value = $config->getVar($var, Config::EXPAND_VALUE| $opts);
-        return is_null($value) ? $default :$value;
+    protected function getModuleVar($var, $section=null, $config='module') {
+        switch ($var) {
+            case 'id':
+                return $this->configModule;
+        }
+        
+        $config = $this->getConfig($config);
+        return $config->getVar($var, $section);
     }
 
-    /**
-      * Returns a section from the site configuration
-      * @param string $var the key to retrieve
-      * @param mixed $default an optional default value if the key is not present
-      * @param int $opts
-      * @return mixed the value of the or the default 
-      */
-    protected function getModuleSection($section, $default=array(), $opts=Config::LOG_ERRORS) {
-        $config = $this->getModuleConfig();
-        if (!$section = $config->getSection($section, $opts)) {
-            $section = $default;
-        }
-        return $section;
+    protected function getOptionalModuleVar($var, $default='', $section=null, $config='module') {
+        $config = $this->getConfig($config);
+        return $config->getOptionalVar($var, $default, $section);
+    }
+
+    protected function getModuleSection($section, $config='module') {
+        $config = $this->getConfig($config);
+        return $config->getSection($section);
+    }
+
+    protected function getOptionalModuleSection($section, $config='module') {
+        $config = $this->getConfig($config);
+        return $config->getOptionalSection($section);
+    }
+
+    protected function getModuleSections($config, $expand=Config::EXPAND_VALUE) {
+        $config = $this->getConfig($config);
+        return $config->getSectionVars($expand);
     }
 
     /**
@@ -305,10 +281,9 @@ abstract class Module
       * @return array
       */
     protected function getModuleArray($section) {
-        $config = $this->getModuleConfig();
         $return = array();
 
-        if ($data = $config->getSection($section)) {
+        if ($data = $this->getModuleSection($section)) {
             $fields = array_keys($data);
         
             for ($i=0; $i<count($data[$fields[0]]); $i++) {
@@ -327,7 +302,7 @@ abstract class Module
       * Indicates that administrative access is necessary. Admin access is granted through the adminacl key
       */
     protected function requiresAdmin() {
-        if (!$this->evaluateACLS(self::ACL_ADMIN)) {
+        if (!$this->evaluateACLS(AccessControlList::RULE_TYPE_ADMIN)) {
             $this->unauthorizedAccess();
         }
     }
@@ -337,11 +312,10 @@ abstract class Module
       * @param bool $admin if true evaluate the admin acls
       * @return bool true if the access is granted, false if it is not
       */
-    protected function evaluateACLS($type) {
+    protected function evaluateACLS($type=AccessControlList::RULE_TYPE_ACCESS) {
         $acls = $this->getAccessControlLists($type);
         $allow = count($acls) > 0 ? false : true; // if there are no ACLs then access is allowed
         $users = $this->getUsers(true);
-
         foreach ($acls as $acl) {
             foreach ($users as $user) {
                 $result = $acl->evaluateForUser($user);
@@ -360,28 +334,97 @@ abstract class Module
         return $allow;
     }
 
+    public function getModuleAccessControlListArrays() {
+        $acls = array();
+        foreach (self::getModuleAccessControlLists() as $acl) {
+            $acls[] = $acl->toArray();
+        }
+        return $acls;
+    }
+
+    public function getModuleAccessControlLists() {
+        $acls = array();
+
+        if ($config = $this->getConfig('acls', ConfigFile::OPTION_DO_NOT_CREATE)) {
+            foreach ($config->getSectionVars() as $aclArray) {
+                if ($acl = AccessControlList::createFromArray($aclArray)) {
+                    $acls[] = $acl;
+                }
+            }
+        }
+        
+        return $acls;
+    }
+
     /**
       * Retrieves the access control lists 
       * @param bool $admin if true evaluate the admin acls
       * @return array of access control lists
       */
     protected function getAccessControlLists($type) {
+                
+        $allACLS = array_merge(Kurogo::getSiteAccessControlLists(), $this->getModuleAccessControlLists());
         $acls = array();
         
-        $aclStrings = array_merge(
-            $this->getSiteVar($type, array(), Config::SUPRESS_ERRORS),
-            $this->getModuleVar($type, array(), Config::SUPRESS_ERRORS)
-        );
-        
-        foreach ($aclStrings as $aclString) {
-            if ($acl = AccessControlList::createFromString($aclString)) {
+        foreach ($allACLS as $acl) {
+            if ($acl->getType()==$type) {
                 $acls[] = $acl;
-            } else {
-                throw new Exception("Invalid $var $aclString in $this->id");
             }
         }
         
         return $acls;
+    }
+
+    protected function getModuleAdminSections() {
+        $configData = $this->getModuleAdminConfig();
+        $sections = array();
+        foreach ($configData as $section=>$sectionData) {
+            if (isset($sectionData['showIfSiteVar'])) {
+                if (Kurogo::getOptionalSiteVar($sectionData['showIfSiteVar'][0], '') != $sectionData['showIfSiteVar'][1]) {
+                    continue;
+                }
+            }
+
+            if (isset($sectionData['showIfModuleVar'])) {
+                if ($this->getOptionalModuleVar($sectionData['showIfModuleVar'][0], '') != $sectionData['showIfModuleVar'][1]) {
+                    continue;
+                }
+            }
+            
+            $sections[$section] = array(
+                'title'=>$sectionData['title'],
+                'type'=>$sectionData['type']
+            );
+        }
+                
+        return $sections;
+    }
+    
+    protected function getModuleAdminConfig() {
+        static $configData;
+        if (!$configData) {
+            $configData = array();
+            $files = array(
+                'common'=>sprintf("%s/common/config/admin-module.json", APP_DIR),
+                'module'=>sprintf("%s/%s/config/admin-module.json", MODULES_DIR, $this->id)
+            );
+
+            foreach ($files as $type=>$file) {                
+                if (is_file($file)) {
+                    if (!$data = json_decode(file_get_contents($file),true)) {
+                        throw new Exception("Error parsing $file");
+                    }
+                    
+                    foreach ($data as $section=>&$sectionData) {
+                        $sectionData['type'] = $type;
+                    }
+                    
+                    $configData = array_merge_recursive($configData, $data);
+                }
+            }
+        }
+        
+        return $configData;
     }
 
     abstract protected function moduleDisabled();

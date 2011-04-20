@@ -1,15 +1,34 @@
 {include file="findInclude:common/templates/header.tpl"}
 
-<h1 class="focal videoTitle">{$videoTitle}
-<p>
-  {include file="findInclude:common/templates/bookmark.tpl" name=$cookieName item=$bookmarkItem exdate=$expireDate}  
-  {include file="findInclude:common/templates/share.tpl" shareURL=$videoURL shareRemark=$shareRemark shareEmailURL=$shareEmailURL}
-</p>
-</h1>
+<div class="video">
+    <h1 class="slugline">{$videoTitle}</h1>
 
-<p class="nonfocal">
-{block name="videoPlayer"}{/block}
+  <div id="videosubhead">
+		<div class="videobuttons">
+      {include file="findInclude:common/templates/bookmark.tpl" name=$cookieName item=$bookmarkItem exdate=$expireDate}  
+      {include file="findInclude:common/templates/share.tpl" shareURL=$videoURL shareRemark=$shareRemark shareEmailURL=$shareEmailURL}
+      </div>
+            
+        <p class="byline">
+          {block name="byline"}
+              
+            {if $videoAuthor}
+              <span class="credit">by <span class="author">{$videoAuthor}</span><br /></span>
+            {/if}
+    
+            <span class="postdate">{$videoDate}</span>
+          {/block}
+        </p>    
+  </div><!--storysubhead-->
 
-<p class="focal">{$videoDescription}</p>
+	<div class="videoplayer">
+	{block name="videoPlayer"}{/block}
+	</div>
+
+	<div class="videodescription">
+
+		{$videoDescription}
+	</div>
+</div>
 
 {include file="findInclude:common/templates/footer.tpl"}

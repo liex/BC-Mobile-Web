@@ -5,9 +5,18 @@ class MapSearch {
     protected $searchResults;
     protected $resultCount;
     protected $feeds;
+    protected $feedGroup;
+    
+    public function __construct($feeds) {
+        $this->setFeedData($feeds);
+    }
     
     public function setFeedData($feeds) {
         $this->feeds = $feeds;
+    }
+    
+    public function setFeedGroup($feedGroup) {
+        $this->feedGroup = $feedGroup;
     }
 
     public function getSearchResults() {
@@ -25,8 +34,8 @@ class MapSearch {
         $resultsByDistance = array();
         foreach ($this->feeds as $categoryID => $feedData) {
             $controller = MapDataController::factory($feedData['CONTROLLER_CLASS'], $feedData);
-            $controller->setCategoryId($categoryID);
-            $controller->setDebugMode($GLOBALS['siteConfig']->getVar('DATA_DEBUG'));
+            $controller->setCategory($categoryID);
+            $controller->setDebugMode(Kurogo::getSiteVar('DATA_DEBUG'));
             if ($controller->canSearch()) { // respect config settings
                 $results = $controller->searchByProximity($center, $tolerance, $maxItems);
                 // this runs a risk of eliminating search results that are the
@@ -50,8 +59,8 @@ class MapSearch {
     
     	foreach ($this->feeds as $id => $feedData) {
             $controller = MapDataController::factory($feedData['CONTROLLER_CLASS'], $feedData);
-            $controller->setCategoryId($id);
-            $controller->setDebugMode($GLOBALS['siteConfig']->getVar('DATA_DEBUG'));
+            $controller->setCategory($id);
+            $controller->setDebugMode(Kurogo::getSiteVar('DATA_DEBUG'));
             
             if ($controller->canSearch()) {
                 $results = $controller->search($query);

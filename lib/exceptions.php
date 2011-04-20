@@ -1,4 +1,5 @@
 <?php
+
 /**
   * @package Exceptions
   *
@@ -142,6 +143,11 @@ function developmentErrorLog($exception){
 /**
   * Exception Handler set in initialize.php
   */
+function exceptionHandlerForError($exception) {
+    $error = print_r($exception, TRUE);
+    die("There was a serious error: $error");
+}
+
 function exceptionHandlerForDevelopment($exception) {
   $errtime = developmentErrorLog($exception);
   error_log(print_r($exception, TRUE));
@@ -153,7 +159,7 @@ function exceptionHandlerForDevelopment($exception) {
   */
 function exceptionHandlerForProduction($exception) {
   if(!$GLOBALS['deviceClassifier']->isSpider()) {
-    mail($GLOBALS['siteConfig']->getVar('DEVELOPER_EMAIL'), 
+    mail(Kurogo::getSiteVar('DEVELOPER_EMAIL'), 
       "Mobile web page experiencing problems",
       "The following page is throwing exceptions:\n\n" .
       "URL: http".(IS_SECURE ? 's' : '')."://".SERVER_HOST."{$_SERVER['REQUEST_URI']}\n" .

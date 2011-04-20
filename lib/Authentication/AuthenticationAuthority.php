@@ -33,6 +33,12 @@ abstract class AuthenticationAuthority
       * @var string
       */
     protected $userLogin;
+
+    /** 
+      * CSS class for showing this authority
+      * @var string
+      */
+    protected $authorityClass = '';
     
     /** 
       * Class for user objects. Most subclasses will override this
@@ -45,6 +51,12 @@ abstract class AuthenticationAuthority
       * @var string
       */
     protected $groupClass='UserGroup';
+    
+    /**
+      * Whether debug mode is on or off. See setDebugMode
+      * @var bool
+      */
+    protected $debugMode = false;
     
     /**
      * Attempts to authenticate the user using the included credentials
@@ -71,6 +83,12 @@ abstract class AuthenticationAuthority
 	 * @see UserGroup object
      */
     abstract public function getGroup($group);
+    
+    /**
+     * Validates an authority for connectivity
+	 * @return boolean. True if connectivity is established or false if it is not. Authorities may also set an error object to provide more information.
+     */
+    abstract public function validate(&$error);
 
     /**
      * Initializes the authority objects based on an associative array of arguments
@@ -91,8 +109,12 @@ abstract class AuthenticationAuthority
     public function init($args)
     {
         $args = is_array($args) ? $args : array();
-        if (!isset($args['TITLE'], $args['INDEX'])) {
-            throw new Exception("Title and index must be set");
+        if (!isset($args['TITLE']) || empty($args['TITLE'])) {
+            throw new Exception("Invalid authority title");
+        }
+        
+        if (!isset($args['INDEX']) || empty($args['INDEX'])) {
+            throw new Exception("Invalid authority index");
         }
         
         $this->setAuthorityIndex($args['INDEX']);
@@ -153,6 +175,10 @@ abstract class AuthenticationAuthority
     public function getAuthorityIndex()
     {
         return $this->AuthorityIndex;
+    }
+    
+    public function getAuthorityClass() {
+        return $this->authorityClass;
     }
 
     /**
@@ -222,6 +248,17 @@ abstract class AuthenticationAuthority
         
         return $configFile->getSectionVars();
     }
+
+    public static function getDefinedAuthenticationAuthorityNames()
+    {
+        $authorities = self::getDefinedAuthenticationAuthorities();
+        $authorityNames = array();
+        foreach ($authorities as $authority=>$data) {
+            $authorityNames[$authority]= $data['TITLE'];
+        }
+
+        return $authorityNames;
+    }
     
     /**
      * Returns the default (i.e. the first) authentication authority in the config file. 
@@ -239,6 +276,29 @@ abstract class AuthenticationAuthority
         return key($authorities);
     }
 
+    public static function getAuthenticationAuthorityData($index) {
+        static $configFile;
+        if (!$configFile) {
+            $configFile = self::getAuthorityConfigFile();
+        }
+        
+        return $configFile->getOptionalSection($index);
+    }
+    
+    public static function validateAuthority($index, $authorityData) {
+
+        $authorityData['INDEX'] = $index;
+        $authorityClass = $authorityData['CONTROLLER_CLASS'];
+        $authority = self::factory($authorityClass, $authorityData);
+        if (!$result = $authority->validate($error)) {
+            return $error;
+        }
+        
+        return true;
+    }
+    
+    
+
     /**
      * Retrieves an authentication authority by its index. This is the preferred way to retrieve an authority
      * @param string $index the index/tag of the authority to retrieve
@@ -246,12 +306,7 @@ abstract class AuthenticationAuthority
     */
     public static function getAuthenticationAuthority($index)
     {
-        static $configFile;
-        if (!$configFile) {
-            $configFile = self::getAuthorityConfigFile();
-        }
-        
-        if ($authorityData = $configFile->getSection($index)) {
+        if ($authorityData = self::getAuthenticationAuthorityData($index)) {
             $authorityClass = $authorityData['CONTROLLER_CLASS'];
             $authorityData['INDEX'] = $index;
             $authority = self::factory($authorityClass, $authorityData);
@@ -282,8 +337,9 @@ abstract class AuthenticationAuthority
                     $file = $dir . '/' . $entry;
                     if (preg_match("/^([A-Z].*?)\.php$/", $entry, $bits)) {
                         $class = $bits[1];
-                        if (@include_once($file)) {
-                            if (class_exists($class) && is_subclass_of($class, 'AuthenticationAuthority')) {
+                        $info = new ReflectionClass($class);
+                        if (!$info->isAbstract()) {
+                            if (is_subclass_of($class, 'AuthenticationAuthority')) {
                                 $authorities[$class] = $class;
                             }
                         }
@@ -294,6 +350,14 @@ abstract class AuthenticationAuthority
         }
                 
         return $authorities;
+    }
+    
+    /**
+     * Sets debug mode
+     * @param bool 
+     */
+    public function setDebugMode($debugMode) {
+        $this->debugMode = $debugMode ? true : false;
     }
     
     /**

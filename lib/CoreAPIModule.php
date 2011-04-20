@@ -11,7 +11,12 @@ class CoreAPIModule extends APIModule
         $module = new CoreAPIModule();
         $module->init($command, $args);
         return $module;
-   }
+    }
+ 
+    //always allow access
+    protected function getAccessControlLists($type) {
+        return array(AccessControlList::allAccess());
+    }
     
     public function initializeForCommand() {  
     
@@ -20,12 +25,16 @@ class CoreAPIModule extends APIModule
             
                 $allmodules = $this->getAllModules();
                 foreach ($allmodules as $moduleID=>$module) {
-                    $modules[] = array(
-                        'id'=>$moduleID,
-                        'title'=>$module->getModuleVar('title'),
-                        'vmin'=>$module->getVmin(),
-                        'vmax'=>$module->getVmax()
-                    );
+                    if (!$module->getModuleVar('disabled', 'module')) {
+                        $modules[] = array(
+                            'id'        =>$module->getID(),
+                            'tag'       =>$module->getConfigModule(),
+                            'title'     =>$module->getModuleVar('title','module'),
+                            'access'    =>$module->getAccess(AccessControlList::RULE_TYPE_ACCESS),
+                            'vmin'      =>$module->getVmin(),
+                            'vmax'      =>$module->getVmax()
+                        );
+                    }
                 }
                 $response = array(
                     'version'=>KUROGO_VERSION,

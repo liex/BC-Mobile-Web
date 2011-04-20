@@ -138,13 +138,13 @@ function setCookie(name, value, expireseconds, path) {
   exdate.setTime(exdate.getTime() + (expireseconds * 1000));
   var exdateclause = (expireseconds == 0) ? "" : "; expires=" + exdate.toGMTString();
   var pathclause = (path == null) ? "" : "; path=" + path;
-  document.cookie = name + "=" + value + exdateclause + pathclause;
+  document.cookie = name + "=" + escape(value) + exdateclause + pathclause;
 }
 
 function getCookieArrayValue(name) {
   var value = getCookie(name);
   if (value && value.length) {
-    return value.split(',');
+    return value.split('@@');
   } else {
     return new Array();
   }
@@ -185,10 +185,19 @@ function toggleClass(ele, cls) {
 function showShare() {
 	document.getElementById("sharesheet").style.display="block";
 	document.addEventListener('touchmove', doNotScroll, true);
+	var iframes = document.getElementsByTagName('iframe');
+	for (var i=0; i<iframes.length; i++) {
+	    iframes[i].style.visibility = 'hidden';
+	}
+	window.scrollTo(0,0);
 }
 function hideShare() {
 	document.getElementById("sharesheet").style.display="none";
 	document.removeEventListener('touchmove', doNotScroll, true);
+	var iframes = document.getElementsByTagName('iframe');
+	for (var i=0; i<iframes.length; i++) {
+	    iframes[i].style.visibility = 'visible';
+	}
 }
 function doNotScroll( event ) {
 	event.preventDefault(); event.stopPropagation();

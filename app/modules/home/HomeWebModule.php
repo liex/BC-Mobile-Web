@@ -10,51 +10,8 @@
   */
 class HomeWebModule extends WebModule {
   protected $id = 'home';
+  protected $canBeAddedToHomeScreen = false;
 
-  protected function getModuleDefaultData() {
-    return array_merge(parent::getModuleDefaultData(), array(
-      'display_type'      => 'springboard',
-      'primary_modules'   => array(),
-      'secondary_modules' => array()
-    ));
-  }
-  
-  protected function getSectionTitleForKey($key) {
-    switch ($key) {
-      case 'primary_modules': return 'Primary Modules';
-      case 'secondary_modules': return 'Secondary Modules';
-      default: return parent::getSectionTitleForKey($key);
-    }
-  }
-  
-  protected function prepareAdminForSection($section, &$adminModule) {
-    switch ($section) {
-      case 'primary_modules':
-      case 'secondary_modules':
-        
-        $adminModule->setTemplatePage('module_order', $this->id);
-        $adminModule->addInternalJavascript("/modules/{$this->id}/javascript/admin.js");
-        $adminModule->addInternalCSS("/modules/{$this->id}/css/admin.css");
-
-        $allModules = $this->getAllModules();
-        $navigationModules = $this->getNavigationModules();
-
-        foreach ($allModules as $moduleID=>$module) {
-          $allModules[$moduleID] = $module->getModuleName();
-        }
-
-        foreach ($navigationModules[rtrim($section,'_modules')] as $moduleID=>$module) {
-          $sectionModules[$moduleID] = $module['title'];
-        }
-        
-        $adminModule->assign('allModules', $allModules);
-        $adminModule->assign('sectionModules', $sectionModules);
-        break;
-      default:
-        return parent::prepareAdminForSection($section, $adminModule);
-    }
-  }
-  
   private function getTabletModulePanes($tabletConfig) {
     $modulePanes = array();
     
@@ -85,13 +42,17 @@ class HomeWebModule extends WebModule {
         $this->addOnOrientationChange('rotateScreen();');
 
         if ($this->pagetype == 'tablet') {
-          $config = $this->getModuleConfig();
           
-          $this->assign('modulePanes', $this->getTabletModulePanes($config->getSection('tablet_panes')));
+          $this->assign('modulePanes', $this->getTabletModulePanes($this->getModuleSection('tablet_panes')));
           $this->addInternalJavascript('/common/javascript/lib/ellipsizer.js');
-          $this->addOnLoad('moduleHandleWindowResize();');
+          $this->addOnOrientationChange('moduleHandleWindowResize();');
         } else {
           $this->assign('modules', $this->getModuleNavList());
+        }
+        
+        // to save some cycles, we'll only check on certain platforms. 
+        if (in_array($this->platform, array('bbplus','blackberry'))) {
+            $this->assign('SHOW_DOWNLOAD', DownloadWebModule::hasApp($this->platform));
         }
         $this->assign('displayType', $this->getModuleVar('display_type'));
         $this->assign('topItem', null);

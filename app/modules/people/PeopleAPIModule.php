@@ -66,11 +66,11 @@ class PeopleAPIModule extends APIModule
         if (isset($this->feeds[$index])) {
             $feedData = $this->feeds[$index];
             if (!isset($feedData['CONTROLLER_CLASS'])) {
-                $feedData['CONTROLLER_CLASS'] = 'LDAPDataController';
+                $feedData['CONTROLLER_CLASS'] = 'LDAPPeopleController';
             }
             $controller = PeopleController::factory($feedData['CONTROLLER_CLASS'], $feedData);
             //$controller->setAttributes($this->detailAttributes);
-            $controller->setDebugMode($this->getSiteVar('DATA_DEBUG'));
+            $controller->setDebugMode(Kurogo::getSiteVar('DATA_DEBUG'));
             return $controller;
         } else {
             throw new Exception("Error getting people feed for index $index");
@@ -80,7 +80,7 @@ class PeopleAPIModule extends APIModule
     public function initializeForCommand() {  
         $this->feeds = $this->loadFeedData();
         $peopleController = $this->getFeed('people');
-        $this->fieldConfig = $this->loadAPIConfigFile('people');
+        $this->fieldConfig = $this->getAPIConfigData('detail');
         
         switch ($this->command) {
             case 'search':
@@ -106,10 +106,10 @@ class PeopleAPIModule extends APIModule
                             $results[] = $this->formatPerson($person);
                         }
                         $response = array(
-                            'total' => $resultCount,
-                            'returned' => $resultCount,
+                            'total'        => $resultCount,
+                            'returned'     => $resultCount,
                             'displayField' => 'name',
-                            'results' => $results,
+                            'results'      => $results,
                             );
                     }
                     
@@ -121,9 +121,20 @@ class PeopleAPIModule extends APIModule
                     $this->setResponseVersion(1);
                 }
                 break;
-            case 'displayfields':
-                //break;
             case 'contacts':
+                $results = $this->getAPIConfigData('contacts');
+                $response = array(
+                    'total'        => count($results),
+                    'returned'     => count($results),
+                    'displayField' => 'title',
+                    'results'      => $results,
+                    );
+
+                $this->setResponse($response);
+                $this->setResponseVersion(1);
+
+                break;
+            case 'displayfields':
                 //break;
             default:
                 $this->invalidCommand();

@@ -1,9 +1,5 @@
 {include file="findInclude:common/templates/header.tpl"}
 
-{if isset($showUnsupported)}
- Sorry, unsupported device.
-{else}
-
 {capture name="categorySelect" assign="categorySelect"}
   <select class="input" id="section" name="section" onchange="loadSection(this);">
     {foreach $sections as $section}
@@ -68,24 +64,10 @@
   {/if}
 {/block}
 
-  {if $previousURL}
-      <a href="{$previousURL}">Previous <<<</a>
-  {/if}
-
-{include file="findInclude:modules/$moduleID/templates/results.tpl" results=$videos resultsID="videoList" titleTruncate=40}
-
-  {if $nextURL}
-      <a href="{$nextURL}">Next >>></a>
-  {/if}
-
-{if isset($totalItems)}
-<p class="total_results"> Total: {$totalItems}</p>
-{/if}
-
-{/if}
-
 {if $hasBookmarks}
 {include file="findInclude:common/templates/navlist.tpl" navlistItems=$bookmarkLink secondary=true}
 {/if}
+
+{include file="findInclude:modules/$moduleID/templates/results.tpl" results=$videos resultsID="videoList" titleTruncate=40}
 
 {include file="findInclude:common/templates/footer.tpl"}

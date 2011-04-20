@@ -16,9 +16,7 @@ define('DAY_SECONDS', 24*60*60);
 class CalendarWebModule extends WebModule {
   protected $id = 'calendar';
   protected $feeds = array();
-  protected $hasFeeds = true;
   protected $timezone;
-  protected $feedFields = array('CACHE_LIFETIME'=>'Cache lifetime (seconds)', 'CONTROLLER_CLASS'=>'Controller Class','PARSER_CLASS'=>'Parser Class','EVENT_CLASS'=>'Event Class');
   protected $defaultSearchOption = 0;
 
   public function timezone() {
@@ -124,7 +122,7 @@ class CalendarWebModule extends WebModule {
       case 'phone':
         // add the local area code if missing
         if (preg_match('/^\d{3}-\d{4}/', $value)) {
-          $valueForType = $this->getSiteVar('LOCAL_AREA_CODE').$value;
+          $valueForType = Kurogo::getSiteVar('LOCAL_AREA_CODE').$value;
         }
         $valueForType = str_replace('-', '-&shy;', str_replace('.', '-', $value));
         break;
@@ -155,7 +153,7 @@ class CalendarWebModule extends WebModule {
       case 'phone':
         // add the local area code if missing
         if (preg_match('/^\d{3}-\d{4}/', $value)) {
-          $urlForType = $this->getSiteVar('LOCAL_AREA_CODE').$value;
+          $urlForType = Kurogo::getSiteVar('LOCAL_AREA_CODE').$value;
         }
     
         // remove all non-word characters from the number
@@ -253,7 +251,10 @@ class CalendarWebModule extends WebModule {
       }
   
       $results[] = array(
-        'url'      => $this->detailURL($iCalEvents[$i], array(), false, false),
+        'url'      => $this->detailURL($iCalEvents[$i], array(
+            'calendar'=>$calendar,
+            'type'=>$type
+        ), false, false),
         'title'    => $iCalEvents[$i]->get_summary(),
         'subtitle' => $subtitle,
       );
@@ -262,22 +263,9 @@ class CalendarWebModule extends WebModule {
     return count($iCalEvents);
   }
   
-  protected function prepareAdminForSection($section, &$adminModule) {
-    switch ($section) {
-      case 'feeds':
-        $feeds = $this->loadFeedData();
-        $adminModule->assign('feeds', $feeds);
-        $adminModule->assign('showFeedLabels', true);
-        $adminModule->setTemplatePage('feedAdmin', $this->id);
-        break;
-      default:
-        return parent::prepareAdminForSection($section, $adminModule);
-    }
-  }
-
     protected function getFeedsByType() {  
         $feeds = array();
-        foreach (array('static', 'user', 'resource') as $type) {
+        foreach (array('user','resource','static') as $type) {
             $typeFeeds = $this->getFeeds($type);
             foreach ($typeFeeds as $feed=>$feedData) {
                 $feeds[$type][$type . '|' . $feed] = $feedData['TITLE'];
@@ -300,7 +288,7 @@ class CalendarWebModule extends WebModule {
       case 'user':
       case 'resource':
         $typeController = $type=='user' ? 'UserCalendarListController' :'ResourceListController';
-        $sectionData = $this->getModuleSection('calendar_list');
+        $sectionData = $this->getOptionalModuleSection('calendar_list');
         $listController = isset($sectionData[$typeController]) ? $sectionData[$typeController] : '';
         if (strlen($listController)) {
             $sectionData = array_merge($sectionData, array('SESSION'=>$this->getSession()));
@@ -351,7 +339,7 @@ class CalendarWebModule extends WebModule {
         $feedData['CONTROLLER_CLASS'] = 'CalendarDataController';
       }
       $controller = CalendarDataController::factory($feedData['CONTROLLER_CLASS'],$feedData);
-      $controller->setDebugMode($this->getSiteVar('DATA_DEBUG'));
+      $controller->setDebugMode(Kurogo::getSiteVar('DATA_DEBUG'));
       return $controller;
     } else {
       throw new Exception("Error getting calendar feed for index $index");
@@ -359,7 +347,7 @@ class CalendarWebModule extends WebModule {
   }
  
   protected function initialize() {
-    $this->timezone = new DateTimeZone($this->getSiteVar('LOCAL_TIMEZONE'));
+    $this->timezone = new DateTimeZone(Kurogo::getSiteVar('LOCAL_TIMEZONE'));
   }
 
   protected function initializeForPage() {
@@ -373,8 +361,10 @@ class CalendarWebModule extends WebModule {
         $end = clone $start;
         $end->setTime(23,59,59);
         
-        $type = $this->getArg('type', 'static');
-        $feed = $this->getFeed('events', $type);
+        $type     = $this->getArg('type', 'static');
+        $calendar = $this->getArg('calendar', $this->getDefaultFeed($type));
+
+        $feed = $this->getFeed($calendar, $type);
         $feed->setStartDate($start);
         $feed->setEndDate($end);
         $iCalEvents = $feed->items();
@@ -403,7 +393,7 @@ class CalendarWebModule extends WebModule {
                 if ($event->overlaps(new TimeRange($now, $now))) {
                     $availability = 'In use';
                 } elseif ($event->overlaps(new TimeRange($now + 900, $now + 1800))) {
-                    $availability = 'In use from ' . $this->timeText($event, true);
+                    $availability = 'In use at ' . $this->timeText($event, true);
                 }
             }
                 
@@ -442,6 +432,7 @@ class CalendarWebModule extends WebModule {
 
       case 'index':
         if ($userCalendar = $this->getDefaultFeed('user')) {
+            $this->assign('selectedFeed', 'user|' . $userCalendar);
             $feed = $this->getFeed($userCalendar, 'user');
             $feeds = $this->getFeeds('user');
             $upcomingEvents = array();
@@ -598,7 +589,7 @@ class CalendarWebModule extends WebModule {
           );
         }
 
-        $this->assign('feedTitle', $this->getFeedTitle($type, $user));
+        $this->assign('feedTitle', $this->getFeedTitle($calendar, $type));
         $this->assign('calendar', $calendar);
         $this->assign('current', $current);
         $this->assign('events',  $events);        
@@ -757,6 +748,8 @@ class CalendarWebModule extends WebModule {
         
             $events[] = array(
               'url'       => $this->detailURL($iCalEvent, array(
+              'calendar'  => $calendar,
+              'type'      => $type,
               'filter'    => $searchTerms, 
               'timeframe' => $timeframeKey)),
               'title'     => $iCalEvent->get_summary(),
@@ -777,10 +770,14 @@ class CalendarWebModule extends WebModule {
         break;
         
       case 'year':
-        $year      = $this->getArg('year', date('Y'));
+        $year      = $this->getArg('year', null);
         $type      = $this->getArg('type', 'static');
         $calendar  = $this->getArg('calendar', $this->getDefaultFeed($type));
         $month     = $this->getArg('month', 1); // default to january
+        
+        if (!$year) {
+            $year = date('m') < $month ? date('Y') - 1 : date('Y');
+        }
         
         $start = new DateTime(sprintf("%d%02d01", $year, $month), $this->timezone);
         $end   = new DateTime(sprintf("%d%02d01", $year+1, $month), $this->timezone);

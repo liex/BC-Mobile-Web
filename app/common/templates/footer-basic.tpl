@@ -12,7 +12,7 @@
     <p class="bottomnav">
       <a href="#top">Back to top</a>
       <br />
-      {html_access_key_link href="/home/"}{$SITE_NAME} Home{/html_access_key_link}
+      {html_access_key_link href="/home/"}{$strings.SITE_NAME} Home{/html_access_key_link}
       {if !$isModuleHome}
         {foreach $breadcrumbs as $breadcrumb}
           <br/>
@@ -33,6 +33,22 @@
   {/if}
 
 {/block}
+
+  {block name="loginHTML"}
+    {if $session && $moduleID == 'home'}
+	<div class="loginstatus">
+        {if $session_isLoggedIn}
+        {if $session_multiple_logins}
+			<p><a href="{$session_logout_url}">Signed in with multiple identities</a></p>
+        {else}
+			<p class="{$session_authority_class}"><a href="../login">Signed in via {$session_authority_title} as {$session_fullName}{if $session_multiple_logins} (and other identities){/if}</a></p>
+		{/if}
+		{else}
+			<p class="noauth"><a href="../login">Sign in to {$strings.SITE_NAME}</a></p>
+		{/if}
+	</div>
+	{/if}
+  {/block}
 
 {block name="footer"}
   <div class="nonfocal">

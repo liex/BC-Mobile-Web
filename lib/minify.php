@@ -142,7 +142,7 @@ function getMinifyGroupsConfig() {
       APP_DIR, 
     );
     
-    if ($pageOnly || $module == 'info') {
+    if ($pageOnly || ($platform=='computer' && in_array($module, array('info', 'admin')))) {
       // Info module does not inherit from common files
       $subDirs = array(
         '/modules/'.$module,
@@ -176,7 +176,7 @@ function minifyPostProcess($content, $type) {
   if ($type === Minify::TYPE_CSS) {
     $urlPrefix = URL_PREFIX;
           
-    if ($GLOBALS['siteConfig']->getVar('DEVICE_DEBUG') && URL_PREFIX == URL_BASE) {
+    if (Kurogo::getSiteVar('DEVICE_DEBUG') && URL_PREFIX == URL_BASE) {
       // if device debugging is on, always append device classification
       $urlPrefix .= 'device/'.$GLOBALS['deviceClassifier']->getDevice().'/';
     }

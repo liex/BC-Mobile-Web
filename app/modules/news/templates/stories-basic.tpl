@@ -1,7 +1,7 @@
 <div class="focal">
   {foreach $stories as $story}
     <p>
-      {if $story@first && isset($story['image'])}
+      {if $story@first && $story['image']}
         <img class="thumbnail" src="{$story['image']['src']}" width="{$story['image']['width']}" height="{$story['image']['height']}" />
       {/if}
       <a class="story-link" href="{$story['url']}">{$story["title"]|escape}</a>
@@ -13,10 +13,10 @@
 
 <div class="nonfocal">
   {if $previousURL}
-    <a href="{$previousURL}">< Previous 10 stories</a>
+    <a href="{$previousURL}">< Previous {$maxPerPage} stories</a>
   {/if}
   {if $previousURL && $nextURL}&nbsp;|&nbsp;{/if}
   {if $nextURL}
-    <a href="{$nextURL}">Next 10 stories ></a>
+    <a href="{$nextURL}">Next {$maxPerPage} stories ></a>
   {/if}
 </div>

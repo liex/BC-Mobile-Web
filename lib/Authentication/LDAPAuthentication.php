@@ -8,6 +8,7 @@
   */
 class LDAPAuthentication extends AuthenticationAuthority
 {
+    protected $authorityClass = 'ldap';
     protected $userClass='LDAPUser';
     protected $groupClass='LDAPUserGroup';
     protected $ldapServer;
@@ -44,6 +45,7 @@ class LDAPAuthentication extends AuthenticationAuthority
                 ldap_set_option($this->ldapResource, LDAP_OPT_REFERRALS, 0);
             } else {
                 error_log("Error connecting to LDAP Server $this->ldadServer using port $this->ldapPort");
+                return false;
             }
         }
         
@@ -295,15 +297,15 @@ class LDAPAuthentication extends AuthenticationAuthority
     {
         parent::init($args);
         $args = is_array($args) ? $args : array();
-        $this->ldapServer = isset($args['HOST']) ? $args['HOST'] : null;
-        $this->ldapPort = isset($args['PORT']) ? $args['PORT'] : 389;
-        $this->ldapSearchBase = isset($args['SEARCH_BASE']) ? $args['SEARCH_BASE'] : null;
-        $this->ldapUserSearchBase = isset($args['USER_SEARCH_BASE']) ? $args['USER_SEARCH_BASE'] : null;
-        $this->ldapGroupSearchBase = isset($args['GROUP_SEARCH_BASE']) ? $args['GROUP_SEARCH_BASE'] : null;
+        $this->ldapServer = isset($args['LDAP_HOST']) ? $args['LDAP_HOST'] : null;
+        $this->ldapPort = isset($args['LDAP_PORT']) ? $args['LDAP_PORT'] : 389;
+        $this->ldapSearchBase = isset($args['LDAP_SEARCH_BASE']) ? $args['LDAP_SEARCH_BASE'] : null;
+        $this->ldapUserSearchBase = isset($args['LDAP_USER_SEARCH_BASE']) ? $args['LDAP_USER_SEARCH_BASE'] : null;
+        $this->ldapGroupSearchBase = isset($args['LDAP_GROUP_SEARCH_BASE']) ? $args['LDAP_GROUP_SEARCH_BASE'] : null;
 
         //used if anonymous searches are not permitted (i.e. AD)
-        $this->ldapAdminDN = isset($args['ADMIN_DN']) ? $args['ADMIN_DN'] : null;
-        $this->ldapAdminPassword = isset($args['ADMIN_PASSWORD']) ? $args['ADMIN_PASSWORD'] : null;
+        $this->ldapAdminDN = isset($args['LDAP_ADMIN_DN']) ? $args['LDAP_ADMIN_DN'] : null;
+        $this->ldapAdminPassword = isset($args['LDAP_ADMIN_PASSWORD']) ? $args['LDAP_ADMIN_PASSWORD'] : null;
         
         $this->fieldMap = $this->defaultFieldMap();
         
@@ -315,9 +317,46 @@ class LDAPAuthentication extends AuthenticationAuthority
             }
         }
         
-        if ( empty($this->ldapServer) || empty($this->ldapPort)) {
-            throw new Exception("Invalid LDAP Options");
+        if ( empty($this->ldapServer)) {
+            throw new Exception("Invalid LDAP Server");
         }
+        
+        if ( empty($this->ldapPort)) {
+            throw new Exception("Invalid LDAP Port");
+        }
+    }
+    
+    public function validate(&$error) {
+        $ldap = $this->connectToServer();
+        if (!$ldap) {
+            $error = new KurogoError(-1, "Error connecting", "Error connecting to $this->ldapServer");
+            return false;
+        }
+        
+        ldap_set_option($ldap, LDAP_OPT_TIMELIMIT, 5);
+        if (defined('LDAP_OPT_NETWORK_TIMEOUT')) {
+            ldap_set_option($ldap, LDAP_OPT_NETWORK_TIMEOUT, 5);
+        }
+
+        if ($this->ldapAdminDN) {
+            if (!@ldap_bind($ldap, $this->ldapAdminDN, $this->ldapAdminPassword)) {
+                $error = new KurogoError(ldap_errno($ldap), "Error connecting", ldap_error($ldap));
+                return false;
+            }
+        } else {
+            if (!@ldap_bind($ldap)) {
+                $error = new KurogoError(ldap_errno($ldap), "Error connecting", ldap_error($ldap));
+                return false;
+            }
+        }
+        
+        if (!$search = @ldap_search($ldap, $this->ldapSearchBase('user'), '(objectclass=*)')) {
+            $error = new KurogoError(ldap_errno($ldap), "Error connecting", "Error validating: " . ldap_error($ldap) . " (" . ldap_errno($ldap) . ")");
+            return false;
+        }
+        
+        //might need to test other things.... 
+        return true;
     }
 }
 

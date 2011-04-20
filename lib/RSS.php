@@ -198,7 +198,7 @@ class RSSItem extends XMLElement
             case 'LINK':
                 if (!$value) {
                     if ($link = $element->getAttrib('HREF')) {
-                        $element->setValue($link);
+                        $element->setValue($link, true);
                     }
                 }
                 parent::addElement($element);
@@ -253,6 +253,7 @@ class RSSItem extends XMLElement
             'BODY'=>'content',
             'DC:DATE'=>'pubDate',
             'PUBLISHED'=>'pubDate',
+            'UPDATED'=>'pubDate',
             'AUTHOR'=>'author'
             
         );

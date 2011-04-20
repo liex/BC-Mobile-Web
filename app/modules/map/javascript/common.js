@@ -3,7 +3,7 @@ var centerZoomBased;
 var staticMapOptions;
 var mapWidth;
 var mapHeight;
-var apiURL = "http://localhost:8040/rest/map/staticImageURL"; // TODO get this value from module config
+var apiURL;
 
 function hideMapTabChildren() {
     var mapTab = document.getElementById("mapTab");
@@ -56,71 +56,76 @@ function pixelsFromString(aString) {
     return aString;
 }
 
+function zoomInFromCenter() {
+    staticMapOptions['zoom'] = parseInt(staticMapOptions['zoom']) + 1;
+    updateMapImage();
+}
+
+function zoomOutFromCenter() {
+    staticMapOptions['zoom'] = parseInt(staticMapOptions['zoom']) - 1;
+    updateMapImage();
+}
+
+function zoomInFromBBox() {
+    var bbox = staticMapOptions['bbox'];
+    var dLat = (bbox['ymax'] - bbox['ymin']) / 4;
+    var dLon = (bbox['xmax'] - bbox['xmin']) / 4;
+    bbox['ymax'] = bbox['ymax'] - dLat;
+    bbox['xmax'] = bbox['xmax'] - dLon;
+    bbox['ymin'] = bbox['ymin'] + dLat;
+    bbox['xmin'] = bbox['xmin'] + dLon;
+    staticMapOptions['bbox'] = bbox;
+    updateMapImage();
+}
+
+function zoomOutFromBBox() {
+    var bbox = staticMapOptions['bbox'];
+    var dLat = (bbox['ymax'] - bbox['ymin']) / 2;
+    var dLon = (bbox['xmax'] - bbox['xmin']) / 2;
+    bbox['ymax'] = bbox['ymax'] + dLat;
+    bbox['xmax'] = bbox['xmax'] + dLon;
+    bbox['ymin'] = bbox['ymin'] - dLat;
+    bbox['xmin'] = bbox['xmin'] - dLon;
+    staticMapOptions['bbox'] = bbox;
+    updateMapImage();
+}
+
 function addStaticMapControls() {
     if (!staticMapOptions) {
         return;
     }
 
-    centerZoomBased = ("center" in staticMapOptions);
-    
-    var initCenter;
-    var initZoom;
-    var initBBox;
-    
-    if (centerZoomBased) {
-        initCenter = staticMapOptions['center'];
-        initZoom = staticMapOptions['zoom'];
-    } else {
-        initBBox = staticMapOptions['bbox'];
-    }
-    
-    var objMap = document.getElementById("mapimage");
-    mapWidth = pixelsFromString(objMap.style.width);
-    mapHeight = pixelsFromString(objMap.style.height);
+    var objMap = document.getElementById("staticmapimage");
+    mapWidth = objMap.clientWidth;
+    mapHeight = objMap.clientHeight;
 
     var zoomIn = document.getElementById("zoomin");
-    zoomIn.onclick = function() {
-        if (centerZoomBased) {
-            staticMapOptions['zoom'] = parseInt(staticMapOptions['zoom']) + 1;
-        } else {
-            var bbox = staticMapOptions['bbox'];
-            var dLat = bbox['ymax'] - bbox['ymin'];
-            var dLon = bbox['xmax'] - bbox['xmin']
-            bbox['ymax'] = bbox['ymax'] - dLat / 4;
-            bbox['xmax'] = bbox['xmax'] - dLon / 4;
-            bbox['ymin'] = bbox['ymin'] + dLat / 4;
-            bbox['xmin'] = bbox['xmin'] + dLon / 4;
-            staticMapOptions['bbox'] = bbox;
-        }
-        updateMapImage();
-    }
-    
     var zoomOut = document.getElementById("zoomout");
-    zoomOut.onclick = function() {
-        if (centerZoomBased) {
-            staticMapOptions['zoom'] = parseInt(staticMapOptions['zoom']) - 1;
-        } else {
-            var bbox = staticMapOptions['bbox'];
-            var dLat = bbox['ymax'] - bbox['ymin'];
-            var dLon = bbox['xmax'] - bbox['xmin']
-            bbox['ymax'] = bbox['ymax'] + dLat / 2;
-            bbox['xmax'] = bbox['xmax'] + dLon / 2;
-            bbox['ymin'] = bbox['ymin'] - dLat / 2;
-            bbox['xmin'] = bbox['xmin'] - dLon / 2;
-            staticMapOptions['bbox'] = bbox;
-        }
-        updateMapImage();
-    }
-    
     var recenter = document.getElementById("recenter");
-    recenter.onclick = function() {
-        if (centerZoomBased) {
+
+    centerZoomBased = ("center" in staticMapOptions);
+
+    if (centerZoomBased) {
+        zoomIn.onclick = zoomInFromCenter;
+        zoomOut.onclick = zoomOutFromCenter;
+        
+        var initCenter = staticMapOptions['center'];
+        var initZoom = staticMapOptions['zoom'];
+        recenter.onclick = function() {
             staticMapOptions['center'] = initCenter;
             staticMapOptions['zoom'] = initZoom;
-        } else {
-            staticMapOptions['bbox'] = initBBox;
+            updateMapImage();
         }
-        updateMapImage();
+
+    } else {
+        zoomIn.onclick = zoomInFromBBox;
+        zoomOut.onclick = zoomOutFromBBox;
+        
+        var initBBox = staticMapOptions['bbox'];
+        recenter.onclick = function() {
+            staticMapOptions['bbox'] = initBBox;
+            updateMapImage();
+        }
     }
 }
 
@@ -160,7 +165,7 @@ function updateMapImage() {
     var httpRequest = new XMLHttpRequest();
     var baseURL = staticMapOptions['baseURL'];
     var mapClass = staticMapOptions['mapClass'];
-    var objMap = document.getElementById("mapimage");
+    var objMap = document.getElementById("staticmapimage");
     var url = apiURL + "?baseURL=" + baseURL + "&mapClass=" + mapClass + "&width=" + mapWidth + "&height=" + mapHeight;
     if (centerZoomBased) {
         var lat = staticMapOptions['center']['lat'];
@@ -180,7 +185,12 @@ function updateMapImage() {
     httpRequest.open("GET", url, true);
     httpRequest.onreadystatechange = function() {
         if (httpRequest.readyState == 4 && httpRequest.status == 200) {
-            var obj = JSON.parse(httpRequest.responseText);
+            var obj;
+            if(window.JSON) {
+                obj = JSON.parse(httpRequest.responseText);
+            } else {
+                obj = eval('(' + httpRequest.responseText + ')');
+            }
             var newSrc = obj['response'];
             loadMapImage(newSrc);
         }

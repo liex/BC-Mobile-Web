@@ -2,6 +2,7 @@
 
 define('GEOGRAPHIC_PROJECTION', 4326);
 define('EARTH_RADIUS_IN_METERS', 6378100);
+define('MAP_CATEGORY_DELIMITER', ':');
 
 // http://en.wikipedia.org/wiki/Great-circle_distance
 // chosen for what the page said about numerical accuracy
@@ -32,11 +33,15 @@ function gcd($fromLat, $fromLon, $toLat, $toLon)
 }
 
 function arrayFromMapFeature(MapFeature $feature) {
+    $category = $feature->getCategory();
+    if (!is_array($category)) {
+        $category = explode(MAP_CATEGORY_DELIMITER, $category);
+    }
     $result = array(
         'title' => $feature->getTitle(),
         'subtitle' => $feature->getSubtitle(),
         'id' => $feature->getIndex(),
-        'category' => $feature->getCategory(),
+        'category' => $category,
         'description' => $feature->getDescription(),
         );
 
@@ -59,12 +64,38 @@ function arrayFromMapFeature(MapFeature $feature) {
 }
 
 function shortArrayFromMapFeature(MapFeature $feature) {
+    $category = $feature->getCategory();
+    if (is_array($category)) {
+        $category = implode(MAP_CATEGORY_DELIMITER, $category);
+    }
     return array(
         'featureindex' => $feature->getIndex(),
-        'category' => $feature->getCategory(),
+        'category' => $category,
         );
 }
 
 function htmlColorForColorString($colorString) {
     return substr($colorString, strlen($colorString)-6);
+}
+
+function getMapControllerClasses() {
+    return array(
+        'KMLDataController'=>'KML',
+        'ArcGISDataController'=>'ArcGIS'
+    );
+}
+
+function getStaticMapClasses() {
+    return array(
+        'GoogleStaticMap'=>'Google',
+        'ArcGISStaticMap'=>'ArcGIS',
+        'WMSStaticMap'=>'WMS'
+    );
+}
+
+function getDynamicControllerClasses() {
+    return array(
+        'GoogleJSMap'=>'Google',
+        'ArcGISJSMap'=>'ArcGIS'
+    );
 }

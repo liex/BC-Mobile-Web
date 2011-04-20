@@ -12,8 +12,14 @@ abstract class PeopleController
     abstract public function search($searchTerms);
     abstract public function getError();
     abstract public function setAttributes($attributes);
+    
+    public static function getPeopleControllers() {
+        return array(
+            ''=>'-',
+            'LDAPPeopleController'=>'LDAP'
+        );
+    }
 
-    protected $host;
     protected $debugMode=false;
     protected $personClass = 'Person';
     
@@ -49,9 +55,6 @@ abstract class PeopleController
     
     protected function init($args)
     {
-        if (isset($args['HOST'])) {
-            $this->setHost($args['HOST']);
-        }
 
         if (isset($args['PERSON_CLASS'])) {
             $this->setPersonClass($args['PERSON_CLASS']);

@@ -6,94 +6,14 @@ class VideoWebModule extends WebModule
 {
     protected $id='video';  // this affects which .ini is loaded
     protected $feeds = array();
-    protected $bookmarkCookie = 'videobookmarks';
-    protected $bookmarkLifespan = 25237;
+    protected $bookmarkLinkTitle = 'Bookmarked Videos';
    
-    // bookmarks -- copied from Maps
-    protected function generateBookmarkOptions($cookieID) {
-        // compliant branch
-        $this->addOnLoad("setBookmarkStates('{$this->bookmarkCookie}', '{$cookieID}')");
-        $this->assign('cookieName', $this->bookmarkCookie);
-        $this->assign('expireDate', $this->bookmarkLifespan);
-        $this->assign('bookmarkItem', $cookieID);
-
-        // the rest of this is all touch and basic branch
-        if (isset($this->args['bookmark'])) {
-            if ($this->args['bookmark'] == 'add') {
-                $this->addBookmark($cookieID);
-                $status = 'on';
-                $bookmarkAction = 'remove';
-            } else {
-                $this->removeBookmark($cookieID);
-                $status = 'off';
-                $bookmarkAction = 'add';
-            }
-
-        } else {
-            if ($this->hasBookmark($cookieID)) {
-                $status = 'on';
-                $bookmarkAction = 'remove';
-            } else {
-                $status = 'off';
-                $bookmarkAction = 'add';
-            }
-        }
-
-        $this->assign('bookmarkStatus', $status);
-        $this->assign('bookmarkURL', $this->bookmarkToggleURL($bookmarkAction));
-        $this->assign('bookmarkAction', $bookmarkAction);
-    }
-
-    private function bookmarkToggleURL($toggle) {
-        $args = $this->args;
-        $args['bookmark'] = $toggle;
-        return $this->buildBreadcrumbURL($this->page, $args, false);
-    }
-
     protected function detailURLForBookmark($aBookmark) {
         parse_str($aBookmark, $params);
         return $this->buildBreadcrumbURL('detail', $params, true);
     }
 
-    protected function getBookmarks() {
-        $bookmarks = array();
-        if (isset($_COOKIE[$this->bookmarkCookie])) {
-            $bookmarks = explode(",", $_COOKIE[$this->bookmarkCookie]);
-        }
-        return $bookmarks;
-    }
-
-    protected function setBookmarks($bookmarks) {
-        $values = implode(",", $bookmarks);
-        $expireTime = time() + $this->bookmarkLifespan;
-        setcookie($this->bookmarkCookie, $values, $expireTime);
-    }
-
-    protected function addBookmark($aBookmark) {
-        $bookmarks = $this->getBookmarks();
-        if (!in_array($aBookmark, $bookmarks)) {
-            $bookmarks[] = $aBookmark;
-            $this->setBookmarks($bookmarks);
-        }
-    }
-
-    protected function removeBookmark($aBookmark) {
-        $bookmarks = $this->getBookmarks();
-        $index = array_search($aBookmark, $bookmarks);
-        if ($index !== false) {
-            array_splice($bookmarks, $index, 1);
-            $this->setBookmarks($bookmarks);
-        }
-    }
-
-    protected function hasBookmark($aBookmark) {
-        return in_array($aBookmark, $this->getBookmarks());
-    }
-    
     protected function getTitleForBookmark($aBookmark) {
-        //if (!$this->feeds)  // TODO drop
-        //    $this->feeds = $this->loadFeedData();
-
         parse_str($aBookmark, $params);
         $titles = array($params['title']);
         if (isset($params['subtitle'])) {
@@ -103,80 +23,33 @@ class VideoWebModule extends WebModule
         
     }
     
-    private function bookmarkType($aBookmark) {
-        //parse_str($aBookmark, $params);  // TODO drop
-        return 'video';
-    }
-    
-    private function generateBookmarkLink() {
-        $hasBookmarks = count($this->getBookmarks()) > 0;
-        if ($hasBookmarks) {
-            $bookmarkLink = array(array(
-                'title' => 'Bookmarked Locations',
-                'url' => $this->buildBreadcrumbURL('bookmarks', $this->args, true),
-                ));
-            $this->assign('bookmarkLink', $bookmarkLink);
-        }
-        $this->assign('hasBookmarks', $hasBookmarks);
-    }  
-  
     protected function initialize() {
         $this->feeds = $this->loadFeedData();
     }
     
-    protected function getSections() {
-         $sections = array();
-         foreach ($this->feeds as $index => $feedData) {
-              $sections[] = array(
-                'value'    => $index,
-                'title'    => $feedData['TITLE']
-              );
-         }
-         
-         return $sections;
-    }
-    
-    protected function getListItemForVideo(VideoObject $video, $section) {
-        // FIXME proper fix is either determine if desktop or adjust in javascript 
-        $desc = $video->getDescription();
-        if (strlen($video->getTitle())>30) {             	
-            if (strlen($desc)) {
-                $desc = substr($desc,0,30) . "...";
-            }
+    protected function getListItemForVideo(VideoObject $video, $section, $paneLink=false) {
+
+        $listItemArray = VideoModuleUtils::getListItemForVideo($video, $section, $this);
+        
+        $args = array(
+            'section'=>$section,
+            'videoid'=>$video->getID()
+        );
+
+        // Add breadcrumb.
+        
+        if ($paneLink) {
+          $listItemArray['url'] = $this->buildURL('detail', $args);
+        } else {
+          $listItemArray['url'] = $this->buildBreadcrumbURL('detail', $args);
         }
         
-        if (strlen($desc)>75) {
-            $desc = substr($desc,0,75) . "...";
-        }
-
-        return array(
-            'title'=>$video->getTitle(),
-            'subtitle'=>$desc . "<br />" . $this->getDuration($video->getDuration()),
-            'imgWidth'=>120,  
-            'imgHeight'=>100,  
-            'img'=>$video->getImage(),
-            'url'=>$this->buildBreadcrumbURL('detail', array(
-                'section'=>$section,
-                'videoid'=>$video->getID()
-            )));
-    }
-
-    protected function getDuration($prop_length) {
-        if (!$prop_length) {
-            return "";
-        } elseif ($prop_length<60) {
-            return $prop_length . " secs";
-        } else {
-            $mins = intval($prop_length / 60);
-            $secs = $prop_length % 60;
-            return $mins . " mins, " . $secs . " secs";
-        }
+        return $listItemArray;
     }
     
     protected function initializeForPage() {
    
         if ($this->pagetype=='basic') {
-            $this->assign('showUnsupported', true);
             return;
         }
         
@@ -195,17 +68,29 @@ class VideoWebModule extends WebModule
         
         $feedData = $this->feeds[$section];
         $this->assign('currentSection', $section);
-        $this->assign('sections'      , $this->getSections());
+        $this->assign('sections'      , VideoModuleUtils::getSectionsFromFeeds($this->feeds));
         $this->assign('feedData'      , $feedData);
         
         $controller = DataController::factory($feedData['CONTROLLER_CLASS'], $feedData);
 
         switch ($this->page)
         {  
+              case 'pane':
+                $start = 0;
+                $maxPerPage = $this->getOptionalModuleVar('MAX_RESULTS', 10);
+
+                $items = $controller->items($start, $maxPerPage);
+                $videos = array();
+                foreach ($items as $video) {
+                    $videos[] = $this->getListItemForVideo($video, $section, true);
+                }
+                
+                $this->assign('videos', $videos);
+                break;
             case 'search':
             case 'index':
         
-                $maxPerPage = $this->getModuleVar('MAX_RESULTS', 10);
+                $maxPerPage = $this->getOptionalModuleVar('MAX_RESULTS', 10);
         	    $start = $this->getArg('start', 0);
         	    
                 if ($this->page == 'search') {
@@ -250,10 +135,14 @@ class VideoWebModule extends WebModule
                   'section'=>$section
                 );
           
+          		$this->addInternalJavascript('/common/javascript/lib/ellipsizer.js');
+          		$this->addOnLoad('setupVideosListing();');
+          
                 $this->assign('start',       $start);
                 $this->assign('previousURL', $previousURL);
                 $this->assign('nextURL',     $nextURL);
                 $this->assign('hiddenArgs',  $hiddenArgs);
+                $this->assign('maxPerPage',  $maxPerPage);
                  
                 $this->generateBookmarkLink();
                     
@@ -288,6 +177,8 @@ class VideoWebModule extends WebModule
                     $this->assign('videoURL',         $video->getURL());
                     $this->assign('videoid',          $video->getID());
                     $this->assign('videoDescription', $video->getDescription());
+                    $this->assign('videoAuthor'     , $video->getAuthor());
+                    $this->assign('videoDate'       , $video->getPublished()->format('M n, Y'));
                     
                     $body = $video->getDescription() . "\n\n" . $video->getURL();
                     
@@ -312,4 +203,29 @@ class VideoWebModule extends WebModule
                 break;
         }
     }
+    
+  public function federatedSearch($searchTerms, $maxCount, &$results) {
+  	 
+    $section = key($this->feeds);
+    if (!$section) return 0;
+    $feedData = $this->feeds[$section];
+    if (!$feedData) return 0;
+    $controller = DataController::factory($feedData['CONTROLLER_CLASS'], $feedData);
+
+  	$items = $controller->search($searchTerms, 0, $maxCount);
+  	 
+  	if ($items) {
+  		$results = array();
+  		foreach ($items as $video) {
+  		    $listItem = $this->getListItemForVideo($video, $section);
+  		    unset($listItem['subtitle']);
+  			$results[] = $listItem;
+  		}
+  		return $controller->getTotalItems();
+  	} else {
+  		return 0;
+  	}
+  	
+  }
+  
  }

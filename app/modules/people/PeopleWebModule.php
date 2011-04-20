@@ -14,8 +14,6 @@ class PeopleWebModule extends WebModule {
   private $detailFields = array();
   private $detailAttributes = array();
   protected $feeds=array();
-  protected $feedFields = array('CONTROLLER_CLASS'=>'Controller Class','PERSON_CLASS'=>'Person Class');
-  protected $hasFeeds = true;
   
   private function formatValues($values, $info) {
     if (isset($info['parse'])) {
@@ -137,7 +135,7 @@ class PeopleWebModule extends WebModule {
         $section = $this->formatPersonDetail($people[$i], $this->detailFields['name']);
         
         $results[] = array(
-          'url' => $this->buildBreadcrumbURL("/{$this->id}/detail", array(
+          'url' => $this->buildBreadcrumbURL('detail', array(
              'uid'    => $people[$i]->getId(),
              'filter' => $searchTerms
           ), false),
@@ -147,44 +145,17 @@ class PeopleWebModule extends WebModule {
     }
     return count($people);
   }
-
-  protected function prepareAdminForSection($section, &$adminModule) {
-    switch ($section)
-    {
-        case 'feeds':
-            $feeds = $this->loadFeedData();
-            $adminModule->assign('feeds', $feeds);
-            $adminModule->setTemplatePage('feedAdmin', $this->id);
-            $formListItems = array();
-            foreach ($feeds as $feed=>$data) {
-                foreach ($data as $key=>$value) {
-                    $formListItems[] = array(
-                        'label'=>$key,
-                        'type'=>'text',
-                        'name'=>sprintf("moduleData[feeds][%s][%s]", $feed, $key),
-                        'value'=>$value
-                    );
-                }
-            }
-            
-            $adminModule->assign('peopleAdminListItems', $formListItems);
-            break;
-        default:
-            return parent::prepareAdminForSection($section, $adminModule);
-        
-    }
-  }
   
   protected function getFeed($index)
   {
     if (isset($this->feeds[$index])) {
         $feedData = $this->feeds[$index];
         if (!isset($feedData['CONTROLLER_CLASS'])) {
-            $feedData['CONTROLLER_CLASS'] = 'LDAPDataController';
+            $feedData['CONTROLLER_CLASS'] = 'LDAPPeopleController';
         }
         $controller = PeopleController::factory($feedData['CONTROLLER_CLASS'], $feedData);
         $controller->setAttributes($this->detailAttributes);
-        $controller->setDebugMode($this->getSiteVar('DATA_DEBUG'));
+        $controller->setDebugMode(Kurogo::getSiteVar('DATA_DEBUG'));
         return $controller;
     } else {
         throw new Exception("Error getting people feed for index $index");
@@ -204,7 +175,7 @@ class PeopleWebModule extends WebModule {
 
     $PeopleController = $this->getFeed('people');
     
-    if ($this->getSiteVar('MODULE_DEBUG')) {
+    if (Kurogo::getSiteVar('MODULE_DEBUG')) {
       $this->addModuleDebugString($PeopleController->debugInfo());
     }
     
@@ -288,6 +259,7 @@ class PeopleWebModule extends WebModule {
         }
         
         $this->loadPageConfigFile('index', 'contacts');
+        $this->setAutoPhoneNumberDetection(false);
         break;
     }  
   }

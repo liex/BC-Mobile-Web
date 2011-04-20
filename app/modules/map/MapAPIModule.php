@@ -8,76 +8,183 @@ class MapAPIModule extends APIModule
     protected $feeds = null;
     protected $vmin = 1;
     protected $vmax = 1;
+
+    protected $feedGroup = null;
+    protected $feedGroups = null;
+    protected $numGroups = 1;
     
-    // from MapWebModule
-    private function getDataController($index) {
-        if (!$this->feeds) {
+    // functions duped from MapWebModule
+
+    protected function getDataController($categoryPath, &$listItemPath) {
+        if (!$this->feeds)
             $this->feeds = $this->loadFeedData();
-        }
-    
-        if ($index === NULL) {
+
+        if ($categoryPath === NULL) {
             return MapDataController::factory('MapDataController', array(
                 'JS_MAP_CLASS' => 'GoogleJSMap',
-                'DEFAULT_ZOOM_LEVEL' => $this->getModuleVar('DEFAULT_ZOOM_LEVEL', 10)
+                'DEFAULT_ZOOM_LEVEL' => $this->getOptionalModuleVar('DEFAULT_ZOOM_LEVEL', 10)
                 ));
-        
-        } else if (isset($this->feeds[$index])) {
-            $feedData = $this->feeds[$index];
+
+        } else {
+            $listItemPath = $categoryPath;
+            if ($this->numGroups > 0) {
+                if (count($categoryPath) < 2) {
+                    $path = implode(MAP_CATEGORY_DELIMITER, $categoryPath);
+                    throw new Exception("invalid category path $path for multiple feed groups");
+                }
+                $feedIndex = array_shift($listItemPath).MAP_CATEGORY_DELIMITER.array_shift($listItemPath);
+            } else {
+                $feedIndex = array_shift($listItemPath);
+            }
+            $feedData = $this->feeds[$feedIndex];
             $controller = MapDataController::factory($feedData['CONTROLLER_CLASS'], $feedData);
-            $controller->setCategoryId($index);
-            $controller->setDebugMode($GLOBALS['siteConfig']->getVar('DATA_DEBUG'));
+            $controller->setCategory($feedIndex);
+            $controller->setDebugMode(Kurogo::getSiteVar('DATA_DEBUG'));
             return $controller;
         }
     }
-    
-    private function getCategoriesForCampus($campusID=NULL) {
-        $categories = array();
-        foreach ($this->feeds as $id => $feedData) {
-            if (isset($feedData['HIDDEN']) && $feedData['HIDDEN']) continue;
-            if ($campusID && (!isset($feedData['CAMPUS']) || $feedData['CAMPUS'] != $campusID)) continue;
-            
-            $controller = MapDataController::factory($feedData['CONTROLLER_CLASS'], $feedData);
-            $controller->setCategoryId($id);
-            $category = array(
-                'id' => $id,
-                'title' => $controller->getTitle(),
-                );
-            $category['subcategories'] = $controller->getAllCategoryNodes();
-            
-            $categories[] = $category;
-        }
-        return $categories;
+
+    protected function getFeedGroups() {
+        return $this->getModuleSections('feedgroups');
     }
 
-    public function initializeForCommand() {
-        
-        switch ($this->command) {
-            case 'campuses':
-                // we need to move the list of campuses out of config 
-                // and into a feed so we can have a parser do this work
-                $numCampuses = $GLOBALS['siteConfig']->getVar('CAMPUS_COUNT');
-                $campuses = array();
-                for ($i = 0; $i < $numCampuses; $i++) {
-                    $campusInfo = $GLOBALS['siteConfig']->getSection('campus-'.$i);
-                    list($lat, $lon) = explode(',', $campusInfo['center']);
-                    $address = array('display' => $campusInfo['address']);
-                    $campus = array(
-                        'id' => $campusInfo['id'],
-                        'campus' => $campusInfo['id'],
-                        'title' => $campusInfo['title'],
-                        'lat' => $lat,
-                        'lon' => $lon,
-                        'address' => $address,
-                        'description' => $campusInfo['description'],
-                        );
-                    $campuses[] = $campus;
+    protected function loadFeedData() {
+        $data = array();
+        $feedConfigFile = NULL;
+
+        if ($this->feedGroup !== NULL) {
+            if ($this->numGroups === 1) {
+                $this->feedGroup = key($this->feedGroups);
+            }
+        }
+
+        if ($this->numGroups === 0) {
+            $data = $this->getModuleSections('feeds');
+
+        } elseif ($this->feedGroup !== NULL) {
+            $configName = "feeds-{$this->feedGroup}";
+            foreach ($this->getModuleSections($configName) as $id => $feedData) {
+                $data[$this->feedGroup.MAP_CATEGORY_DELIMITER.$id] = $feedData;;
+            }
+
+        } else {
+            foreach ($this->feedGroups as $groupID => $groupData) {
+                $configName = "feeds-$groupID";
+                foreach ($this->getModuleSections($configName) as $id => $feedData) {
+                    $data[$groupID.MAP_CATEGORY_DELIMITER.$id] = $feedData;
                 }
+            }
+        }
+
+        return $data;
+    }
+
+    protected function getCategoriesAsArray() {
+        $category = $this->getArg('category', null);
+        if ($category !== null) {
+            return explode(MAP_CATEGORY_DELIMITER, $category);
+        }
+        return array();
+    }
+
+    protected function initializeForSearch() {
+        $this->feedGroup = $this->getArg('group', null);
+        if ($this->feedGroup !== NULL && !isset($this->feedGroups[$this->feedGroup])) {
+            $this->feedGroup = NULL;
+        }
+
+        $mapSearchClass = $this->getOptionalModuleVar('MAP_SEARCH_CLASS', 'MapSearch');
+        if (!$this->feeds)
+            $this->feeds = $this->loadFeedData();
+        $mapSearch = new $mapSearchClass($this->feeds);
+
+        $searchType = $this->getArg('type', '');
+        switch ($searchType) {
+            case 'detail':
+                $identifier = $this->getArg('identifier');
+                if ($identifier) {
+                    $feature = $this->dataController->getFeature($identifier, $categoryPath);
+
+                    $response = array(
+                        'total' => 1,
+                        'returned' => 1,
+                        'displayField' => 'title',
+                        'results' => array(arrayFromMapFeature($feature)),
+                        );
+
+                    $this->setResponse($response);
+                    $this->setResponseVersion(1);
+
+                } else {
+                    // TODO return a more informative error
+                    $this->invalidCommand();
+                }
+
+                break;
+
+            case 'nearby':
+                $lat = $this->getArg('lat', 0);
+                $lon = $this->getArg('lon', 0);
+
+                $center = array('lat' => $lat, 'lon' => $lon);
+                $searchResults = $mapSearch->searchByProximity($center, 1000, 10);
                 
+                $places = array();
+                foreach ($searchResults as $result) {
+                    $places[] = arrayFromMapFeature($result);
+                }
+
                 $response = array(
-                    'total' => $numCampuses,
-                    'returned' => $numCampuses,
+                    'total' => count($places),
+                    'returned' => count($places),
                     'displayField' => 'title',
-                    'results' => $campuses,
+                    'results' => $places,
+                    );
+
+                $this->setResponse($response);
+                $this->setResponseVersion(1);
+
+                break;
+
+            default:
+                $searchTerms = $this->getArg('q');
+                if ($searchTerms) {
+
+                    $searchResults = $mapSearch->searchCampusMap($searchTerms);
+
+                    $places = array();
+                    foreach ($searchResults as $result) {
+                        $places[] = arrayFromMapFeature($result);
+                    }
+
+                    $response = array(
+                        'total' => count($places),
+                        'returned' => count($places),
+                        'displayField' => 'title',
+                        'results' => $places,
+                        );
+
+                    $this->setResponse($response);
+                    $this->setResponseVersion(1);
+                }
+        }
+    }
+
+    // end of functions duped from mapwebmodule
+
+    public function initializeForCommand() {
+
+        $this->feedGroups = $this->getFeedGroups();
+        $this->numGroups = count($this->feedGroups);
+
+        switch ($this->command) {
+            case 'groups':
+
+                $response = array(
+                    'total' => $this->numGroups,
+                    'returned' => $this->numGroups,
+                    'displayField' => 'title',
+                    'results' => $this->feedGroups,
                     );
 
                 $this->setResponse($response);
@@ -85,29 +192,34 @@ class MapAPIModule extends APIModule
             
                 break;
             case 'categories':
-                // TODO get category tree working
-                if (!$this->feeds) {
-                    $this->feeds = $this->loadFeedData();
+                $this->feedGroup = $this->getArg('group', null);
+                if ($this->feedGroup !== NULL && !isset($this->feedGroups[$this->feedGroup])) {
+                    $this->feedGroup = NULL;
                 }
 
-                $campusIndex = $this->getArg('campus'); // if this is null, fetch everything
-                $categories = $this->getCategoriesForCampus($campusIndex);
+                $categories = array();
+                $this->feeds = $this->loadFeedData();
+                foreach ($this->feeds as $id => $feedData) {
+                    if (isset($feedData['HIDDEN']) && $feedData['HIDDEN']) continue;
+                    $controller = MapDataController::factory($feedData['CONTROLLER_CLASS'], $feedData);
+                    $controller->setCategory($id);
+                    $category = array(
+                        'id' => $controller->getCategory(),
+                        'title' => $controller->getTitle(),
+                        );
+                    $category['subcategories'] = $controller->getAllCategoryNodes();
+                    $categories[] = $category;
+                }
 
                 $this->setResponse($categories);
                 $this->setResponseVersion(1);
             
                 break;
             case 'places':
-                $categoryPath = $this->getArg('category');
+                $categoryPath = $this->getCategoriesAsArray();
                 if ($categoryPath) {
-                    if (is_array($categoryPath)) {
-                        $topCategory = array_shift($categoryPath);
-                    } else {
-                        $topCategory = $categoryPath;
-                        $categoryPath = array();
-                    }
-                    $dataController = $this->getDataController($topCategory);
-                    $listItems = $dataController->getListItems($categoryPath);
+                    $dataController = $this->getDataController($categoryPath, $listItemPath);
+                    $listItems = $dataController->getListItems($listItemPath);
                     $places = array();
                     foreach ($listItems as $listItem) {
                         if ($listItem instanceof MapFeature) {
@@ -127,32 +239,7 @@ class MapAPIModule extends APIModule
                 }
                 break;
             case 'search':
-                $searchTerms = $this->getArg('q');
-                if ($searchTerms) {
-
-                    $mapSearchClass = $GLOBALS['siteConfig']->getVar('MAP_SEARCH_CLASS');
-                    $mapSearch = new $mapSearchClass();
-                    if (!$this->feeds)
-                        $this->feeds = $this->loadFeedData();
-                    $mapSearch->setFeedData($this->feeds);
-        
-                    $searchResults = $mapSearch->searchCampusMap($searchTerms);
-        
-                    $places = array();
-                    foreach ($searchResults as $result) {
-                        $places[] = arrayFromMapFeature($result);
-                    }
-
-                    $response = array(
-                        'total' => count($places),
-                        'returned' => count($places),
-                        'displayField' => 'title',
-                        'results' => $places,
-                        );
-                
-                    $this->setResponse($response);
-                    $this->setResponseVersion(1);
-                }
+                $this->initializeForSearch();
 
                 break;
 
@@ -196,6 +283,37 @@ class MapAPIModule extends APIModule
                 $this->setResponseVersion(1);
             
                 break;
+
+                case 'geocode':
+                    $locationSearchTerms = $this->getArg('q');
+                    
+                    $geocodingDataControllerClass = $this->getOptionalModuleVar('GEOCODING_DATA_CONTROLLER_CLASS');
+                    $geocodingDataParserClass = $this->getOptionalModuleVar('GEOCODING_DATA_PARSER_CLASS');
+                    $geocoding_base_url = $this->getOptionalModuleVar('GEOCODING_BASE_URL');
+
+                    $arguments = array('BASE_URL' => $geocoding_base_url,
+                                  'CACHE_LIFETIME' => 86400,
+                                  'PARSER_CLASS' => $geocodingDataParserClass);
+
+                    $controller = DataController::factory($geocodingDataControllerClass, $arguments);
+                    $controller->addCustomFilters($locationSearchTerms);
+                    $response = $controller->getParsedData();
+
+                    // checking for Geocoding service error
+                    if ($response['errorCode'] == 0) {
+
+                        unset($response['errorCode']);
+                        unset($response['errorMessage']);
+                        $this->setResponse($response);
+                        $this->setResponseVersion(1);
+                    }
+                    else {
+                        $kurogoError = new KurogoError($response['errorCode'], "Geocoding service Erroe", $response['errorMessage']);
+                        $this->setResponseError($kurogoError);
+                        $this->setResponseVersion(1);
+                    }
+                    break;
+                    
             default:
                 $this->invalidCommand();
                 break;

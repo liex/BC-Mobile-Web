@@ -10,6 +10,7 @@
  */
 class FacebookAuthentication extends AuthenticationAuthority
 {
+    protected $authorityClass = 'facebook';
     protected $userClass='FacebookUser';
     protected $api_key;
     protected $api_secret;
@@ -159,6 +160,14 @@ class FacebookAuthentication extends AuthenticationAuthority
             }
             
             
+
+            // facebook does not like empty options
+            foreach ($options as $option=>$value) {
+                if (strlen($value)==0) {
+                    unset($options[$option]);
+                }
+            }
+
             //save the redirect_uri so we can use it later
             $this->redirect_uri = $_SESSION['redirect_uri'] = FULL_URL_BASE . 'login/login?' . http_build_query(
                 array_merge($options, 
@@ -193,23 +202,27 @@ class FacebookAuthentication extends AuthenticationAuthority
         return false;
     }
 
+    public function validate(&$error) {
+        return true;
+    }
+
     public function init($args)
     {
         parent::init($args);
         $args = is_array($args) ? $args : array();
-        if (!isset($args['API_KEY'], $args['API_SECRET']) ||
-            strlen($args['API_KEY'])==0 || strlen($args['API_SECRET'])==0) {
+        if (!isset($args['FACEBOOK_API_KEY'], $args['FACEBOOK_API_SECRET']) ||
+            strlen($args['FACEBOOK_API_KEY'])==0 || strlen($args['FACEBOOK_API_SECRET'])==0) {
             throw new Exception("API key and secret not set");
         }
 
-        $this->api_key = $args['API_KEY'];
-        $this->api_secret = $args['API_SECRET'];
+        $this->api_key = $args['FACEBOOK_API_KEY'];
+        $this->api_secret = $args['FACEBOOK_API_SECRET'];
         if (isset($_SESSION['fb_access_token'])) {
             $this->access_token = $_SESSION['fb_access_token'];
         }
 
-        if (isset($args['API_PERMS'])) {
-            $this->perms = array_unique(array_merge($this->perms, $args['API_PERMS']));
+        if (isset($args['FACEBOOK_API_PERMS'])) {
+            $this->perms = array_unique(array_merge($this->perms, $args['FACEBOOK_API_PERMS']));
         }
     }
     

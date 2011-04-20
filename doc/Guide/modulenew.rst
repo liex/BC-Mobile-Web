@@ -365,7 +365,7 @@ Home Screen
 -----------
 
 Adding the module to the home screen is simple. You can either use the :ref:`admin-module`
-or by editing the *SITE_DIR/config/module/home.ini* file. 
+or by editing the *SITE_DIR/config/home/module.ini* file. 
 
 #. In the *[primary_modules]* section, add an entry that says :kbd:`video="Video"`
 #. Create a 72x72 PNG image named *video.png* and place it in the *SITE_DIR/themes/default/modules/home/images/compliant*
@@ -436,6 +436,6 @@ We can now use it in our *VideoWebModule.php* file when we call the search metho
     $items = $controller->search($this->getModuleVar('SEARCH_QUERY'));
 
 The method *getModuleVar* will attempt to retrieve a value from the *config/MODULEID/module.ini* file.
-You can also use the *getSiteVar* method to retrive a value from *config/config.ini* which is used by
+You can also use the *getSiteVar* method to retrive a value from *config/site.ini* which is used by
 all modules
 

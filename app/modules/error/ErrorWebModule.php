@@ -10,7 +10,9 @@
   */
 class ErrorWebModule extends WebModule {
   protected $id = 'error';
+  protected $configModule = 'error';
   protected $moduleName = 'Error';
+  protected $canBeAddedToHomeScreen = false;
 
   private $errors = array(
     'data' => array(
@@ -46,7 +48,11 @@ class ErrorWebModule extends WebModule {
   );
 
   protected function init($page, $args) {
+      if(!Kurogo::getSiteVar('PRODUCTION_ERROR_HANDLER_ENABLED')) {
+        set_exception_handler("exceptionHandlerForError");
+      }
       $this->pagetype = $GLOBALS['deviceClassifier']->getPagetype();
+      $this->platform = $GLOBALS['deviceClassifier']->getPlatform();
       $this->page = 'index';
       $this->setTemplatePage($this->page, $this->id);
       $this->args = $args;
@@ -54,9 +60,7 @@ class ErrorWebModule extends WebModule {
   }
 
   protected function getAccessControlLists($type) {
-    return array(AccessControlList::factory(AccessControlList::RULE_ACTION_ALLOW, 
-                                            AccessControlList::RULE_TYPE_EVERYONE,
-                                            AccessControlList::RULE_VALUE_ALL));
+    return array(AccessControlList::allAccess());
   }
 
   protected function initializeForPage() {
@@ -86,7 +90,7 @@ class ErrorWebModule extends WebModule {
   protected function devError() {
     
     // production
-    if($this->getSiteVar('PRODUCTION_ERROR_HANDLER_ENABLED')) {
+    if(Kurogo::getSiteVar('PRODUCTION_ERROR_HANDLER_ENABLED')) {
       return false;
     }
       

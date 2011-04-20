@@ -147,11 +147,9 @@ if (!strlen($path) || $path == '/') {
   $platform = strtoupper($GLOBALS['deviceClassifier']->getPlatform());
   $pagetype = strtoupper($GLOBALS['deviceClassifier']->getPagetype());
 
-  if (!$url = $GLOBALS['siteConfig']->getVar("DEFAULT-{$pagetype}-{$platform}", Config::SUPRESS_ERRORS)) {
-    if (!$url = $GLOBALS['siteConfig']->getVar("DEFAULT-{$pagetype}", Config::SUPRESS_ERRORS)) {
-      if (!$url = $GLOBALS['siteConfig']->getVar("DEFAULT", Config::SUPRESS_ERRORS)) {
-        $url = 'home';
-      }
+  if (!$url = Kurogo::getOptionalSiteVar("DEFAULT-{$pagetype}-{$platform}",'','urls')) {
+    if (!$url = Kurogo::getOptionalSiteVar("DEFAULT-{$pagetype}",'', 'urls')) {
+        $url = Kurogo::getOptionalSiteVar("DEFAULT",'home','urls');
     }
   } 
   
@@ -177,13 +175,17 @@ if ($parts[0]==API_URL_PREFIX) {
         case 2: 
             $id = 'core';
             $command = $parts[1];
-            $module = CoreAPIModule::factory($command, $args);
+            if (!$module = CoreAPIModule::factory($command, $args)) {
+                throw new Exception("Module $id cannot be loaded");
+            }
             break;
             
         case 3:
             $id = isset($parts[1]) ? $parts[1] : '';
             $command = isset($parts[2]) ? $parts[2] : '';
-            $module = APIModule::factory($id, $command, $args);
+            if (!$module = APIModule::factory($id, $command, $args)) {
+                throw new Exception("Module $id cannot be loaded");
+            }
             break;
 
         default:
@@ -200,7 +202,7 @@ if ($parts[0]==API_URL_PREFIX) {
     $id = $parts[0];
     
     /* see if there's a redirect for this path */
-    if ($url_redirects = $GLOBALS['siteConfig']->getSection('urls', ConfigFile::SUPRESS_ERRORS)) {
+    if ($url_redirects = Kurogo::getSiteSection('urls')) {
       if (array_key_exists($id, $url_redirects)) {
         if (preg_match("#^http(s)?://#", $url_redirects[$id])) {
            $url = $url_redirects[$id];
@@ -225,11 +227,13 @@ if ($parts[0]==API_URL_PREFIX) {
       exit;
     }
 
-    $module = WebModule::factory($id, $page, $args);
-    
-    /* log this page view */
-    PageViews::increment($id, $GLOBALS['deviceClassifier']->getPlatform());
-    
-    $module->displayPage();
+    if ($module = WebModule::factory($id, $page, $args)) {
+        /* log this page view */
+        PageViews::increment($id, $GLOBALS['deviceClassifier']->getPlatform());
+        
+        $module->displayPage();
+    } else {
+        throw new Exception("Module $id cannot be loaded");
+    }
 }
 exit;

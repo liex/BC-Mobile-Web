@@ -143,13 +143,18 @@ class TemplateEngine extends Smarty {
     $source = preg_replace(
       ';(url\("?\'?|href\s*=\s*"|src\s*=\s*")('.URL_PREFIX.'|'.URL_DEVICE_DEBUG_PREFIX.'|/);', '\1'.URL_PREFIX, $source);
     
-    if ($GLOBALS['siteConfig']->getVar('DEVICE_DEBUG')) {
+    if (Kurogo::getSiteVar('DEVICE_DEBUG')) {
       // if we are in debugging mode we need to also rewrite full paths with hostnames
       $source = preg_replace(
         ';(url\("?\'?|href\s*=\s*"|src\s*=\s*")('.FULL_URL_PREFIX.'|'.FULL_URL_BASE.');', '\1'.FULL_URL_PREFIX, $source);
     }
     
     // Most of the following code comes from the stripwhitespace filter:
+    
+    // Pull out the style blocks
+    preg_match_all("!<style[^>]*?>.*?</style>!is", $source, $match);
+    $styleBlocks = $match[0];
+    $source = preg_replace("!<style[^>]*?>.*?</style>!is", '@@@SMARTY:TRIM:STYLE@@@', $source);
     
     // Pull out the script blocks
     preg_match_all("!<script[^>]*?>.*?</script>!is", $source, $match);
@@ -179,10 +184,11 @@ class TemplateEngine extends Smarty {
     // replace runs of spaces with a single space.
     $source = preg_replace('/\s+/m', ' ', $source);
 
-    // restore textarea, pre and script blocks
+    // restore textarea, pre, script and style blocks
     self::stripWhitespaceReplace("@@@SMARTY:TRIM:TEXTAREA@@@", $textareaBlocks, $source);
     self::stripWhitespaceReplace("@@@SMARTY:TRIM:PRE@@@", $preBlocks, $source);
     self::stripWhitespaceReplace("@@@SMARTY:TRIM:SCRIPT@@@", $scriptBlocks, $source);
+    self::stripWhitespaceReplace("@@@SMARTY:TRIM:STYLE@@@", $styleBlocks, $source);
     
     return $source;
   }
@@ -274,8 +280,8 @@ class TemplateEngine extends Smarty {
     $this->assign('pagetype', $pagetype);
     $this->assign('platform', $platform);
     $this->assign('supportsCerts', $supportsCerts ? 1 : 0);
-    $this->assign('showDeviceDetection', $GLOBALS['siteConfig']->getVar('DEVICE_DETECTION_DEBUG'));
-    $this->assign('moduleDebug', $GLOBALS['siteConfig']->getVar('MODULE_DEBUG'));
+    $this->assign('showDeviceDetection', Kurogo::getSiteVar('DEVICE_DETECTION_DEBUG'));
+    $this->assign('moduleDebug', Kurogo::getSiteVar('MODULE_DEBUG'));
   }
   
   //

@@ -119,12 +119,25 @@ abstract class APIModule extends Module
      */
     public static function factory($id, $command='', $args=array()) {
 
-        $module = parent::factory($id, 'api');
+        if (!$module = parent::factory($id, 'api')) {
+            return false;
+        }
         if ($command) {
             $module->init($command, $args);
         }
 
         return $module;
+    }
+
+    protected function getAPIConfig($name, $opts=0) {
+        $opts = $opts | ConfigFile::OPTION_CREATE_WITH_DEFAULT;
+        $config = ModuleConfigFile::factory($this->configModule, "api-$name", $opts);
+        return $config;
+    }
+
+    protected function getAPIConfigData($name) {
+        $config = $this->getAPIConfig($name);
+        return $config->getSectionVars(Config::EXPAND_VALUE);
     }
    
     protected function getAllModules() {
@@ -135,9 +148,10 @@ abstract class APIModule extends Module
                 $d = dir($dir);
                 while (false !== ($entry = $d->read())) {
                     if ($entry[0]!='.' && is_dir(sprintf("%s/%s", $dir, $entry))) {
-                       try {
-                            $module = APIModule::factory($entry);
-                            $modules[$entry] = $module;
+                        try {
+                            if ($module = APIModule::factory($entry)) {
+                                $modules[$entry] = $module;
+                            }
                         } catch (Exception $e) {
                         }
                     }
@@ -155,7 +169,7 @@ abstract class APIModule extends Module
    */
   private function loadResponseIfNeeded() {
     if (!isset($this->response)) {
-      $this->response = new APIResponse($this->id, $this->command);
+      $this->response = new APIResponse($this->id, $this->configModule, $this->command);
     }
   }
   
@@ -206,25 +220,29 @@ abstract class APIModule extends Module
     }
     $this->setCommand($command);
   }
+
+  protected function loadSiteConfigFile($name, $opts=0) {
+    $config = ConfigFile::factory($name, 'site', $opts);
+    $GLOBALS['siteConfig']->addConfig($config);
+
+    return $config->getSectionVars(true);
+  }
   
  /**
    * Execute the command. Will call initializeForCommand() which should set the version, error and response
    * values appropriately
    */
   public function executeCommand() {
+    if (empty($this->command)) {
+        throw new Exception("Command not specified");
+    }
     $this->loadResponseIfNeeded();
+    $this->loadSiteConfigFile('strings');
+
     $this->initializeForCommand();
     $this->response->display();
   }
-  
-  /**
-    * Load config vars from site/<site>/config/api/<name>.ini
-    */
-  public function loadAPIConfigFile($name, $opts=0) {
-      $config = $this->getConfig($name, 'api', $opts);
-      return $config->getSectionVars(true);
-  }
-  
+    
  /**
    * All modules must implement this method to handle the logic of each command.
    */

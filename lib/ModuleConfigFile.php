@@ -12,9 +12,15 @@ class ModuleConfigFile extends ConfigFile {
     // loads a config object from a file/type combination  
     public static function factory($id, $type, $options=0) {
         $config = new ModuleConfigFile();
+        if (!($options & self::OPTION_DO_NOT_CREATE)) {
+            $options = $options | self::OPTION_CREATE_WITH_DEFAULT;
+        }
         
         if (!$result = $config->loadFileType($id, $type, $options)) {
-            die("FATAL ERROR: cannot load $type configuration file: " . self::getfileByType($id, $type));
+            if ($options & self::OPTION_DO_NOT_CREATE) {
+                return false;
+            }
+            throw new Exception("FATAL ERROR: cannot load $type configuration file for module $id: " . self::getfileByType($id, $type));
         }
     
         return $config;
@@ -35,7 +41,7 @@ class ModuleConfigFile extends ConfigFile {
                 }
             }
             
-            return false;
+            throw new Exception("Unable to find $type config file for module $id");
         } else {
             $file = sprintf('%s/%s/%s.ini', SITE_CONFIG_DIR, $id, $type);
         }

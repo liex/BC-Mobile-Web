@@ -6,6 +6,10 @@ class KurogoError
 	public $title;
 	public $message;
 	
+	public function __toString() {
+	    return $this->message;
+	}
+	
 	public function __construct($code, $title, $message) {
         $this->setCode($code);
         $this->setTitle($title);
@@ -71,7 +75,7 @@ class KurogoError
     
     public static function errorFromException(Exception $exception) {
         $error = new KurogoError($exception->getCode(), 'Exception', $exception->getMessage());
-        if(!$GLOBALS['siteConfig']->getVar('PRODUCTION_ERROR_HANDLER_ENABLED')) {
+        if(!Kurogo::getSiteVar('PRODUCTION_ERROR_HANDLER_ENABLED')) {
             $error->file = $exception->getFile();
             $error->line = $exception->getLine();
             $error->trace = $exception->getTrace();

@@ -10,12 +10,13 @@ class ArcGISDataController extends MapDataController
         return '.js'; // json
     }
     
-    protected function cacheFolder()
+    protected function cacheFolder() 
     {
-        return $GLOBALS['siteConfig']->getVar('ARCGIS_CACHE');
+        return Kurogo::getSiteVar('ARCGIS_CACHE');
     }
     
     public function getProjection() {
+        $this->initializeParser();
         return $this->parser->getProjection();
     }
 
